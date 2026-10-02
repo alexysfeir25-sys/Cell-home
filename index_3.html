@@ -1,0 +1,1532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cell Home Renewals</title>
+<meta name="theme-color" content="#3532A8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cell Home">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<style>
+:root{
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#FFFFFF; --side:#F6F7FB; --surface:#FFFFFF; --ink:#1F2233; --muted:#6B7085; --line:#E3E5EE; --row:#F4F5FB;
+  --brand:#3532A8; --brand-ink:#FFFFFF; --brand-soft:#B6B9F1; --brand-tint:#ECEDFC;
+  --due:#C2185B; --due-soft:#FCE4EE; --soon:#B7791F; --soon-soft:#FDF3DC;
+  --ok:#0F7F80; --ok-soft:#DDF3F2; --wa:#1E8E4E;
+  --display:"Roboto",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --body:"Roboto",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  box-sizing:border-box;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#13151E; --side:#191C27; --surface:#1B1E2A; --ink:#E8EAF3; --muted:#9AA0B5; --line:#2A2E3F; --row:#22263A;
+    --brand:#8E8CF7; --brand-ink:#13151E; --brand-soft:#2D3070; --brand-tint:#252956;
+    --due:#FF5C93; --due-soft:#3A1826; --soon:#F0B44C; --soon-soft:#352A14;
+    --ok:#3CC7C4; --ok-soft:#123331; --wa:#3CCB7A;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#13151E; --side:#191C27; --surface:#1B1E2A; --ink:#E8EAF3; --muted:#9AA0B5; --line:#2A2E3F; --row:#22263A;
+  --brand:#8E8CF7; --brand-ink:#13151E; --brand-soft:#2D3070; --brand-tint:#252956;
+  --due:#FF5C93; --due-soft:#3A1826; --soon:#F0B44C; --soon-soft:#352A14;
+  --ok:#3CC7C4; --ok-soft:#123331; --wa:#3CCB7A;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--body)}
+button,input,select,textarea{font:inherit;color:inherit}
+
+/* Shell: sidebar + main */
+.app{display:grid;grid-template-columns:250px minmax(0,1fr);min-height:100vh}
+.side{background:var(--side);border-right:1px solid var(--line);display:flex;flex-direction:column;position:sticky;top:env(safe-area-inset-top,0px);height:calc(100vh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
+.brand{background:var(--brand-soft);padding:26px 16px 22px;text-align:center}
+.avatar{width:50px;height:50px;border-radius:50%;background:#fff;color:#1F2233;display:grid;place-items:center;margin:0 auto 12px}
+.avatar svg{width:26px;height:26px}
+.brand-name{font-weight:500;font-size:1.15rem;letter-spacing:.03em;text-transform:uppercase}
+.brand-sub{opacity:.75;font-size:.88rem;margin-top:2px}
+.nav{display:flex;flex-direction:column;gap:4px;padding:20px 16px;flex:1}
+.tab{display:flex;align-items:center;gap:14px;border:none;background:none;padding:10px 14px;border-radius:6px;color:var(--muted);font-weight:500;font-size:.95rem;cursor:pointer;text-align:left}
+.tab svg{width:22px;height:22px;flex:none}
+.tab:hover{background:var(--brand-tint);color:var(--ink)}
+.tab[aria-selected="true"]{background:var(--brand);color:var(--brand-ink)}
+.brand{position:relative}
+.balance{position:absolute;top:12px;right:12px;border:none;background:var(--brand);color:var(--brand-ink);font-weight:700;font-size:.95rem;padding:5px 11px;border-radius:6px;cursor:pointer}
+.balance:hover{filter:brightness(1.1)}
+.balance.neg{background:var(--due);color:#fff}
+.balance.unset{background:var(--surface);color:var(--brand);border:1px dashed var(--brand)}
+.balance:focus-visible{outline:3px solid color-mix(in srgb,var(--brand) 55%,transparent);outline-offset:2px}
+.bal-after{background:var(--brand-tint);border-radius:6px;padding:10px 12px;font-size:.92rem}
+.bal-after b{font-weight:700}
+.bal-after .neg{color:var(--due)}
+.side-foot{border-top:1px solid var(--line);padding:12px 16px;display:flex;flex-direction:column;gap:2px}
+.sync{font-size:.78rem;margin-top:6px;display:inline-flex;align-items:center;gap:6px;opacity:.85}
+.sync::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--ok)}
+.sync.busy::before{background:var(--soon)}
+.sync.off::before{background:var(--due)}
+.side-link{display:flex;gap:10px;align-items:center;border:none;background:none;color:var(--brand);font-weight:500;cursor:pointer;padding:8px 10px;border-radius:6px}
+.side-link svg{width:20px;height:20px}
+.tab span{white-space:nowrap}
+.nav-badge{margin-left:auto;background:var(--due);color:#fff;font-size:.75rem;font-weight:700;border-radius:999px;padding:1px 8px;line-height:1.5}
+.debt-row{grid-template-columns:1.2fr 1fr .9fr .9fr 300px}
+.owed{font-weight:700;color:var(--due);font-variant-numeric:tabular-nums}
+.owed.unknown{color:var(--muted);font-weight:500}
+.side-link:hover{background:var(--brand-tint)}
+.main{padding:18px 24px 64px;min-width:0}
+.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+h1{font:500 1.6rem/1.2 var(--display);margin:0}
+.summary{color:var(--muted);font-size:.9rem;margin-top:2px}
+.summary b{color:var(--ink);font-weight:500}
+
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:6px;padding:8px 14px;cursor:pointer;font-weight:500;display:inline-flex;align-items:center;gap:6px;text-decoration:none;white-space:nowrap}
+.btn:hover{border-color:var(--brand);color:var(--brand)}
+.btn.primary{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+.btn.primary:hover{filter:brightness(1.1);color:var(--brand-ink)}
+.btn.soft{background:var(--brand-tint);color:var(--brand);border-color:transparent}
+.btn.wa{color:var(--wa);border-color:color-mix(in srgb,var(--wa) 40%,var(--line))}
+.btn.small{padding:5px 10px;font-size:.85rem}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--due)}
+.btn:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.tab:focus-visible,.side-link:focus-visible,.copy:focus-visible,.member:focus-visible{outline:3px solid color-mix(in srgb,var(--brand) 55%,transparent);outline-offset:2px}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.banner{background:var(--soon-soft);border-left:4px solid var(--soon);padding:10px 14px;border-radius:6px;margin-bottom:16px;display:none}
+
+/* Alert board */
+.board{background:var(--surface);border:1px solid var(--due);border-left-width:5px;border-radius:8px;padding:16px 18px 6px;margin-bottom:24px}
+.board.calm{border-color:var(--line);border-left-color:var(--ok)}
+.board h2{font:500 1.15rem/1.2 var(--display);margin:0 0 2px}
+.board p.sub{margin:0 0 10px;color:var(--muted);font-size:.9rem}
+.due-row{display:grid;grid-template-columns:76px 1fr auto;gap:14px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.count{font:700 2.2rem/1 var(--display);text-align:center}
+.count small{display:block;font:500 .72rem/1.2 var(--body);color:var(--muted);margin-top:4px}
+.count.over,.count.zero{color:var(--due)} .count.near{color:var(--soon)}
+.who b{font-weight:500;font-size:1.02rem}
+.who .meta{color:var(--muted);font-size:.9rem}
+.tag{display:inline-block;font-size:.75rem;font-weight:500;padding:2px 8px;border-radius:999px;margin-left:6px;vertical-align:1px}
+.tag.acc{background:var(--soon-soft);color:var(--soon)}
+.tag.done{background:var(--ok-soft);color:var(--ok)}
+.empty{padding:14px 0 12px;color:var(--muted)}
+
+/* Tables */
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center}
+.toolbar input,.toolbar select{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px 12px}
+.toolbar input{flex:1 1 220px}
+.spacer{flex:1}
+.list{background:var(--surface);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.row{display:grid;grid-template-columns:1.2fr 1.3fr .9fr 1.1fr 300px;gap:12px;align-items:center;padding:10px 14px;border-top:1px solid var(--line)}
+.row:first-child{border-top:none}
+.row>*{min-width:0;overflow-wrap:anywhere}
+.row:not(.head):hover{background:var(--row)}
+.row.head{font-size:.9rem;font-weight:500;color:var(--ink);background:var(--surface)}
+.row b{font-weight:500}
+.row .muted{color:var(--muted);font-size:.88rem}
+.pill{display:inline-block;font-size:.78rem;font-weight:500;padding:2px 9px;border-radius:999px}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.soon{background:var(--soon-soft);color:var(--soon)}
+.pill.due{background:var(--due-soft);color:var(--due)}
+.pill.stop{background:var(--line);color:var(--muted)}
+.acc-row{grid-template-columns:1.5fr 1fr .6fr .9fr 330px}
+.cell-actions{justify-content:flex-end}
+.slots{font-weight:500}
+.slots.is-full{color:var(--due)}
+.copyline{display:flex;align-items:center;gap:6px;min-width:0}
+.copyline span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.copy{border:none;background:none;color:var(--muted);cursor:pointer;padding:3px;border-radius:4px;display:inline-grid;place-items:center;flex:none}
+.copy:hover{color:var(--brand);background:var(--brand-tint)}
+.copy svg{width:16px;height:16px}
+.copy.done{color:var(--ok)}
+.members{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px;padding-top:2px}
+.member{font-size:.82rem;background:var(--brand-tint);color:var(--ink);border:1px solid transparent;border-radius:6px;padding:3px 9px;cursor:pointer}
+.member:hover{border-color:var(--brand)}
+.member.soon{background:var(--soon-soft);color:var(--soon)}
+.member.expired{background:var(--due-soft);color:var(--due)}
+.member.stopped{opacity:.55;text-decoration:line-through}
+
+/* Reports */
+.report-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin-bottom:16px}
+.report-bar input,.report-bar select{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 11px;font-weight:400;color:var(--ink)}
+.totals{display:flex;flex-wrap:wrap;gap:28px;margin:4px 0 18px}
+.totals div{font-size:.86rem;color:var(--muted);font-weight:500}
+.totals b{display:block;font:500 1.7rem/1.1 var(--display);color:var(--ink)}
+.totals .neg b{color:var(--due)}
+.tx-row{grid-template-columns:.9fr 1.3fr 1.1fr .9fr 90px}
+.m-row{grid-template-columns:1fr .8fr .8fr 1fr 1fr 1fr}
+.m-row.total{font-weight:500;background:var(--row)}
+.bar{height:6px;border-radius:3px;background:var(--brand);margin-top:4px;min-width:2px}
+.amt-in{color:var(--ok);font-weight:500}
+.amt-out{color:var(--due);font-weight:500}
+.hist{border-top:1px solid var(--line);padding:10px 0;display:flex;justify-content:space-between;gap:12px}
+.hist:first-child{border-top:none}
+
+/* Sign-in */
+.signin{min-height:100vh;display:grid;place-items:center;padding:24px 16px;background:var(--side)}
+.signin-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:28px 24px;width:min(400px,100%);display:flex;flex-direction:column;gap:14px}
+.signin-card .avatar{margin:0 auto;background:var(--brand-soft);color:var(--ink)}
+.signin-card h1{text-align:center;font-size:1.4rem}
+.signin-card p{margin:0;color:var(--muted);text-align:center;font-size:.92rem}
+.signin-card .btn{justify-content:center;padding:11px 14px}
+.signin-card form{display:flex;flex-direction:column;gap:10px}
+.signin-card input{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px 12px;color:var(--ink)}
+.or{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:.85rem}
+.or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+.signin-err{color:var(--due);font-size:.9rem;text-align:center;min-height:1.2em;margin:0}
+.signin-row{display:flex;gap:8px}
+.signin-row .btn{flex:1}
+.btn:disabled{opacity:.45;cursor:not-allowed;filter:none}
+
+/* Dialogs */
+dialog{border:none;border-radius:10px;padding:0;background:var(--surface);color:var(--ink);width:min(560px,94vw);max-height:90vh}
+dialog::backdrop{background:rgba(10,12,30,.5)}
+.dlg{padding:22px;overflow-y:auto;max-height:90vh}
+.dlg h3{font:500 1.3rem var(--display);margin:0 0 16px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.full{grid-column:1/-1}
+label{display:flex;flex-direction:column;gap:4px;font-size:.86rem;font-weight:500;color:var(--muted)}
+label input,label select,label textarea{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 11px;font-weight:400;color:var(--ink)}
+.hint{font-size:.8rem;color:var(--muted);font-weight:400}
+.dlg .actions{justify-content:flex-end;margin-top:18px}
+#askText{margin:0;font-size:1rem;color:var(--ink)}
+
+@media (max-width:860px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .side,.main{min-width:0}
+  .side{position:static;height:auto;border-right:none;border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:center;gap:12px;padding:12px 16px;text-align:left}
+  .avatar{margin:0;width:38px;height:38px}
+  .balance{position:static;margin-left:auto}
+  .brand-name{font-size:1rem}
+  .nav{flex-direction:row;overflow-x:auto;padding:8px 12px;gap:4px}
+  .tab{white-space:nowrap;padding:8px 12px}
+  .tab svg{display:none}
+  .side-foot{border-top:none;padding:0 12px 8px;flex-direction:row;flex-wrap:wrap}
+  .main{padding:16px}
+}
+@media (max-width:760px){
+  .row.head{display:none}
+  .row,.acc-row,.tx-row,.m-row,.debt-row{grid-template-columns:1fr 1fr;gap:6px 12px}
+  .row .cell-actions{grid-column:1/-1;justify-content:flex-start}
+  .due-row{grid-template-columns:64px 1fr}
+  .due-row .actions{grid-column:1/-1}
+  .count{font-size:1.9rem}
+  .grid{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:no-preference){
+  .board:not(.calm){animation:pulse 1.2s ease-out 1}
+  @keyframes pulse{from{box-shadow:0 0 0 0 color-mix(in srgb,var(--due) 40%,transparent)}to{box-shadow:0 0 0 12px transparent}}
+}
+</style>
+</head>
+<body>
+<div class="signin" id="signin" hidden>
+  <div class="signin-card">
+    <div class="avatar"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Zm0 2c-4 0-8 2-8 5v2h16v-2c0-3-4-5-8-5Z"/></svg></div>
+    <h1>Cell Home</h1>
+    <p>Sign in to see your customers. Use the same sign-in on your phone and laptop so they share the same data.</p>
+    <button class="btn primary" id="btnGoogle" type="button">Continue with Google</button>
+    <div class="or">or with email</div>
+    <form id="formLogin">
+      <input id="loginEmail" name="email" type="email" autocomplete="username" placeholder="Email" required aria-label="Email">
+      <input id="loginPass" name="password" type="password" autocomplete="current-password" placeholder="Password" required minlength="6" aria-label="Password">
+      <div class="signin-row">
+        <button class="btn" type="submit" value="in">Sign in</button>
+        <button class="btn" type="button" id="btnCreate">Create account</button>
+      </div>
+    </form>
+    <p class="signin-err" id="signinErr" role="alert"></p>
+  </div>
+</div>
+
+<div class="app" id="app" hidden>
+<aside class="side">
+  <div class="brand">
+    <button class="balance unset" id="btnBalance" type="button" title="Your balance">Set balance</button>
+    <div class="avatar"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Zm0 2c-4 0-8 2-8 5v2h16v-2c0-3-4-5-8-5Z"/></svg></div>
+    <div>
+      <div class="brand-name">Cell Home</div>
+      <div class="brand-sub" id="today"></div>
+      <div class="sync busy" id="syncState">Connecting…</div>
+    </div>
+  </div>
+  <nav class="nav" role="tablist" aria-label="Sections">
+    <button class="tab" role="tab" aria-selected="true" data-tab="customers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.3 2.9-5.5 6.5-5.5s6.5 2.2 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.8c2 .7 3.5 2.5 3.5 5.2"/></svg>Customers</button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="accounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="2.5" y="4" width="19" height="13" rx="1.5"/><path d="M8 21h8M12 17v4"/></svg>Stock accounts</button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="debts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7.5A1.5 1.5 0 0 1 5.5 6H18v3"/><rect x="4" y="9" width="16" height="10" rx="1.5"/><circle cx="16" cy="14" r="1.2" fill="currentColor"/></svg><span>Pending payments</span><span class="nav-badge" id="debtBadge" hidden></span></button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="tx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 3h14v18l-2.3-1.5L14.3 21 12 19.5 9.7 21l-2.4-1.5L5 21Z"/><path d="M8.5 8h7M8.5 12h7M8.5 16h4"/></svg>Transactions</button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="monthly"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 20h16"/><rect x="5.5" y="11" width="3" height="6"/><rect x="10.5" y="7" width="3" height="10"/><rect x="15.5" y="4" width="3" height="13"/></svg>Monthly revenue</button>
+  </nav>
+  <div class="side-foot">
+    <button class="side-link" id="btnSettings" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 5h16v11H9l-5 4Z"/><path d="M8 9h8M8 12h5"/></svg>Message templates</button>
+    <button class="side-link" id="btnTheme" type="button"></button>
+    <button class="side-link" id="btnSignOut" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M15 4h3.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H15"/><path d="M10 8l-4 4 4 4M6 12h10"/></svg>Sign out</button>
+  </div>
+</aside>
+<main class="main">
+  <header class="top">
+    <div>
+      <h1 id="pageTitle">Customers</h1>
+      <div class="summary" id="summary"></div>
+    </div>
+    <div class="actions">
+      <button class="btn" id="btnImport" type="button">Import Excel</button>
+      <input type="file" id="fileImport" accept=".xlsx,.xls" hidden>
+      <button class="btn soft" id="btnAddAcc" type="button">+ Add account</button>
+      <button class="btn primary" id="btnAddCust" type="button">+ Add customer</button>
+    </div>
+  </header>
+
+  <div class="banner" id="banner"></div>
+
+  <section class="board" id="board" aria-live="polite">
+    <h2 id="boardTitle">Needs a reminder</h2>
+    <p class="sub">Customers and stock accounts ending within 3 days, plus anything overdue.</p>
+    <div id="dueList"></div>
+  </section>
+
+  <div id="paneCustomers">
+    <div class="toolbar">
+      <input type="search" id="q" placeholder="Search name or number" aria-label="Search customers">
+      <select id="fService" aria-label="Filter by service"><option value="">All services</option></select>
+      <select id="fStatus" aria-label="Filter by status">
+        <option value="">All statuses</option>
+        <option value="active">Active</option>
+        <option value="soon">Ending in 3 days</option>
+        <option value="expired">Expired</option>
+        <option value="stopped">Not renewing</option>
+        <option value="unpaid">Payment pending</option>
+      </select>
+      <span class="spacer"></span>
+      <button class="btn small" id="btnExport" type="button">Export CSV</button>
+      <button class="btn small" id="btnBackup" type="button">Download backup</button>
+      <button class="btn small" id="btnRestore" type="button">Restore backup</button>
+      <input type="file" id="fileRestore" accept=".json,application/json" hidden>
+    </div>
+    <div class="list" id="custList"></div>
+  </div>
+
+  <div id="paneAccounts" hidden>
+    <p class="hint" style="margin:0 0 12px">Passwords sync to your devices and only your sign-in can read them. Anyone holding your unlocked phone or laptop can see them.</p>
+    <div class="list" id="accList"></div>
+  </div>
+
+  <div id="paneTx" hidden>
+    <div class="report-bar">
+      <label>From<input type="date" id="txFrom"></label>
+      <label>To<input type="date" id="txTo"></label>
+      <button class="btn small" type="button" data-range="today">Today</button>
+      <button class="btn small" type="button" data-range="month">This month</button>
+      <button class="btn small" type="button" data-range="last">Last month</button>
+      <button class="btn small" type="button" data-range="year">This year</button>
+      <span class="spacer"></span>
+      <button class="btn small" type="button" id="btnTxExport">Export report</button>
+    </div>
+    <div class="totals" id="txTotals"></div>
+    <div class="list" id="txList"></div>
+  </div>
+
+  <div id="paneDebts" hidden>
+    <div class="totals" id="debtTotals"></div>
+    <div class="list" id="debtList"></div>
+  </div>
+
+  <div id="paneMonthly" hidden>
+    <div class="report-bar">
+      <label>Year<select id="mYear"></select></label>
+    </div>
+    <div class="totals" id="mTotals"></div>
+    <div class="list" id="mList"></div>
+  </div>
+</main>
+</div>
+
+<dialog id="dlgCust"><form class="dlg" method="dialog" id="formCust">
+  <h3 id="custTitle">Add customer</h3>
+  <div class="grid">
+    <label>Name<input name="name" required></label>
+    <label>WhatsApp number<input name="phone" inputmode="tel" placeholder="03 123 456"></label>
+    <label>Service<input name="service" list="serviceList" required placeholder="Netflix"></label>
+    <label>Stock account<select name="accountId"><option value="">None</option></select></label>
+    <label>Profile / slot<input name="profile" placeholder="Profile 3"></label>
+    <label>Profile passcode (4 digits)
+      <span style="display:flex;gap:6px"><input name="pin" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="1234" style="flex:1;min-width:0"><button class="btn small" type="button" id="btnPin">Random</button></span>
+      <span class="hint">Optional. Random picks one not used on this account.</span></label>
+    <label>Start date<input name="start" type="date" required></label>
+    <label>Duration<select name="months">
+      <option value="1">1 month</option><option value="3">3 months</option>
+      <option value="6">6 months</option><option value="12">12 months</option>
+    </select></label>
+    <label class="full">Ends on<input name="expiry" type="date" required><span class="hint">Filled in from start date and duration. You can change it.</span></label>
+    <label>Price ($)<input name="price" type="number" min="0" step="0.5"></label>
+    <label>Payment status<select name="payStatus">
+      <option>Paid</option><option>Pending</option><option>Partial</option>
+    </select></label>
+    <label>Amount paid ($)<input name="amountPaid" type="number" min="0" step="0.5"></label>
+    <label>Date paid<input name="datePaid" type="date"></label>
+    <label>Paid via<select name="payMethod">
+      <option>Whish</option><option>OMT</option><option>Cash</option><option>Other</option>
+    </select></label>
+    <label class="full">Notes<textarea name="notes" rows="2"></textarea></label>
+  </div>
+  <div class="actions">
+    <button class="btn ghost" value="cancel" formnovalidate type="submit">Cancel</button>
+    <button class="btn primary" value="save" type="submit">Save customer</button>
+  </div>
+</form></dialog>
+
+<dialog id="dlgRenew"><form class="dlg" method="dialog" id="formRenew">
+  <h3 id="renewTitle">Renew</h3>
+  <div class="grid">
+    <label>Renew for<select name="months">
+      <option value="1">1 month</option><option value="3">3 months</option>
+      <option value="6">6 months</option><option value="12">12 months</option>
+    </select></label>
+    <label>New end date<input name="expiry" type="date" required></label>
+    <label class="full">Price ($)<input name="price" type="number" min="0" step="0.5"><span class="hint">If they pay later, choose Pending and this is what they owe.</span></label>
+    <label>Payment status<select name="payStatus">
+      <option>Paid</option><option>Pending</option><option>Partial</option>
+    </select></label>
+    <label>Amount paid ($)<input name="amountPaid" type="number" min="0" step="0.5"></label>
+    <label>Date paid<input name="datePaid" type="date"></label>
+    <label>Paid via<select name="payMethod">
+      <option>Whish</option><option>OMT</option><option>Cash</option><option>Other</option>
+    </select></label>
+  </div>
+  <div class="actions">
+    <button class="btn ghost" value="cancel" formnovalidate type="submit">Cancel</button>
+    <button class="btn primary" value="save" type="submit">Save renewal</button>
+  </div>
+</form></dialog>
+
+<dialog id="dlgAcc"><form class="dlg" method="dialog" id="formAcc">
+  <h3 id="accTitle">Add stock account</h3>
+  <div class="grid">
+    <label>Service<input name="service" list="serviceList" required placeholder="Shahid VIP"></label>
+    <label>Login email<input name="login" required placeholder="netflix1@..."></label>
+    <label>Password<input name="password" autocomplete="off"></label>
+    <label>Number of slots<input name="slots" type="number" min="1" value="5" required></label>
+    <label>Account renews on<input name="expiry" type="date"><span class="hint">Leave empty if you don't know it yet.</span></label>
+    <label>Cost ($)<input name="cost" type="number" min="0" step="0.5"></label>
+    <label>Notes<input name="notes"></label>
+    <label class="full">Temporary code link<input name="tempLink" type="url" placeholder="https://..."><span class="hint">Sent to customers when Netflix asks for a temporary code.</span></label>
+  </div>
+  <p class="hint">Saved online and synced to all your devices.</p>
+  <div class="actions">
+    <button class="btn ghost" value="cancel" formnovalidate type="submit">Cancel</button>
+    <button class="btn primary" value="save" type="submit">Save account</button>
+  </div>
+</form></dialog>
+
+<dialog id="dlgBal"><form class="dlg" method="dialog" id="formBal">
+  <h3>Your balance</h3>
+  <label>How much do you have now? ($)<input name="amount" type="number" step="0.01" required></label>
+  <p class="hint">From now on, customer payments are added and stock account renewals are taken out automatically. Set it again any time you top up or want to correct it.</p>
+  <div class="actions">
+    <button class="btn ghost" value="cancel" formnovalidate type="submit">Cancel</button>
+    <button class="btn primary" value="save" type="submit">Save balance</button>
+  </div>
+</form></dialog>
+
+<dialog id="dlgAccPay"><form class="dlg" method="dialog" id="formAccPay">
+  <h3 id="accPayTitle">Renew account</h3>
+  <div class="grid">
+    <label>Renew for<select name="months">
+      <option value="1">1 month</option><option value="3">3 months</option>
+      <option value="6">6 months</option><option value="12">12 months</option>
+    </select></label>
+    <label>New renewal date<input name="expiry" type="date" required></label>
+    <label class="full">Cost ($)<input name="cost" type="number" min="0" step="0.01" required></label>
+    <div class="full bal-after" id="accPayBal"></div>
+  </div>
+  <div class="actions">
+    <button class="btn ghost" value="cancel" formnovalidate type="submit">Cancel</button>
+    <button class="btn primary" value="save" type="submit">Renew and pay</button>
+  </div>
+</form></dialog>
+
+<dialog id="dlgPay"><form class="dlg" method="dialog" id="formPay">
+  <h3 id="payTitle">Got paid</h3>
+  <div class="grid">
+    <label class="full">Amount received ($)<input name="amount" type="number" min="0" step="0.01" required></label>
+    <label>Date<input name="date" type="date" required></label>
+    <label>Paid via<select name="method">
+      <option>Whish</option><option>OMT</option><option>Cash</option><option>Other</option>
+    </select></label>
+    <div class="full bal-after" id="payInfo"></div>
+  </div>
+  <div class="actions">
+    <button class="btn ghost" value="cancel" formnovalidate type="submit">Cancel</button>
+    <button class="btn primary" value="save" type="submit">Save payment</button>
+  </div>
+</form></dialog>
+
+<dialog id="dlgAsk"><form class="dlg" method="dialog">
+  <p id="askText"></p>
+  <div class="actions">
+    <button class="btn ghost" value="cancel" type="submit" id="askCancel">Cancel</button>
+    <button class="btn primary" value="ok" type="submit" id="askOk">OK</button>
+  </div>
+</form></dialog>
+
+<dialog id="dlgHist"><form class="dlg" method="dialog">
+  <h3 id="histTitle">History</h3>
+  <div class="totals" id="histTotals"></div>
+  <div id="histList"></div>
+  <div class="actions"><button class="btn primary" value="close" type="submit">Close</button></div>
+</form></dialog>
+
+<dialog id="dlgImport"><form class="dlg" method="dialog">
+  <h3>Import from Excel</h3>
+  <div class="totals" id="impTotals"></div>
+  <div id="impSkipped"></div>
+  <div class="actions">
+    <button class="btn ghost" value="cancel" type="submit">Cancel</button>
+    <button class="btn primary" value="import" type="submit" id="btnDoImport">Import</button>
+  </div>
+</form></dialog>
+
+<dialog id="dlgSet"><form class="dlg" method="dialog" id="formSet">
+  <h3>Reminder message</h3>
+  <label>WhatsApp message<textarea name="template" rows="5"></textarea>
+  <span class="hint">Use {name}, {service}, {date} and {price}. They're filled in for each customer.</span></label>
+  <label style="margin-top:14px">Payment reminder<textarea name="payTemplate" rows="4"></textarea>
+  <span class="hint">Sent to customers who still owe you. Use {name}, {service} and {amount}.</span></label>
+  <label style="margin-top:14px">Login details<textarea name="loginTemplate" rows="8"></textarea>
+  <span class="hint">Use {name}, {service}, {email}, {password}, {profile} and {pin}.</span></label>
+  <label style="margin-top:14px">Temporary code steps<textarea name="codeTemplate" rows="7"></textarea>
+  <span class="hint">Use {name} and {link}. {link} is the temporary code link of the customer's stock account.</span></label>
+  <div class="actions">
+    <button class="btn ghost" value="cancel" formnovalidate type="submit">Cancel</button>
+    <button class="btn primary" value="save" type="submit">Save message</button>
+  </div>
+</form></dialog>
+
+<datalist id="serviceList">
+  <option value="Netflix"><option value="Shahid VIP"><option value="Anghami Plus"><option value="OSN+">
+  <option value="StarzPlay"><option value="YouTube Premium"><option value="Spotify"><option value="TOD">
+</datalist>
+
+<script>
+(function(){
+  const DEFAULT_TEMPLATE = "Hi {name}, your {service} subscription ends on {date}. To keep it running, send {price} via Whish or OMT and reply here with the screenshot. Thank you!";
+  
+  const DEFAULT_CODE = "Hi {name}, if Netflix asks for a temporary code, follow these steps:\n\nStep 1: Click on \"Update Netflix Household\"\nStep 2: Click \"Send email\"\nStep 3: Open this link: {link}\nStep 4: The code will appear after 1 minute. Enter it on Netflix.";
+  const DEFAULT_LOGIN = "Hi {name}, here are your {service} login details:\n\nEmail: {email}\nPassword: {password}\nProfile: {profile}\nProfile passcode: {pin}\n\nPlease use your own profile only and don't change the password or passcode. Enjoy!";
+  const DEFAULT_PAY = "Hi {name}, a friendly reminder that {amount} is still pending for your {service} subscription. You can send it via Whish or OMT and reply here with the screenshot. Thank you!";
+  const DEFAULTS = { template: DEFAULT_TEMPLATE, codeTemplate: DEFAULT_CODE, loginTemplate: DEFAULT_LOGIN, payTemplate: DEFAULT_PAY };
+  let customers = [], accounts = [], transactions = [], settings = Object.assign({}, DEFAULTS);
+  let renewing = null, balance = null, payingAcc = null;
+  let editingCust = null, editingAcc = null;
+  const $ = s => document.querySelector(s);
+
+  // ---------- dates ----------
+  function todayStr(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+  function toUTC(s){ const [y,m,d]=s.split("-").map(Number); return Date.UTC(y,m-1,d); }
+  function daysLeft(exp){ if(!exp) return 9999; return Math.round((toUTC(exp)-toUTC(todayStr()))/864e5); }
+  function addMonths(s,n){
+    const [y,m,d]=s.split("-").map(Number);
+    const last=new Date(Date.UTC(y,m-1+n+1,0)).getUTCDate();
+    const t=new Date(Date.UTC(y,m-1+n,Math.min(d,last)));
+    return t.toISOString().slice(0,10);
+  }
+  function addDays(s,n){ return new Date(toUTC(s)+n*864e5).toISOString().slice(0,10); }
+  function fmt(s){ if(!s) return "—"; return new Date(toUTC(s)).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric",timeZone:"UTC"}); }
+  function esc(v){ return String(v==null?"":v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+  function money(p){ return (p===""||p==null||isNaN(p)) ? "" : "$"+Number(p); }
+  function newId(p){ return p+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+
+  function status(c){
+    if(c.stopped) return "stopped";
+    const d=daysLeft(c.expiry);
+    if(d<0) return "expired";
+    if(d<=3) return "soon";
+    return "active";
+  }
+
+  // ---------- links ----------
+  function waNumber(raw){
+    let n=String(raw||"").replace(/\D/g,"");
+    if(n.startsWith("00")) n=n.slice(2);
+    if(n.startsWith("961")) return n;
+    if(n.startsWith("0")) n=n.slice(1);
+    if(n.length<=8) return "961"+n;
+    return n;
+  }
+  function hasPhone(c){ return String(c.phone||"").replace(/\D/g,"").length>=7; }
+  function custKey(phone,name,service){ const n=String(phone||"").replace(/\D/g,"").replace(/^0+/,""); return (n||"name:"+String(name||"").trim().toLowerCase())+"|"+String(service||"").toLowerCase(); }
+  function waLink(c){
+    const msg=(settings.template||DEFAULT_TEMPLATE)
+      .replaceAll("{name}",c.name||"").replaceAll("{service}",c.service||"")
+      .replaceAll("{date}",fmt(c.expiry)).replaceAll("{price}",money(c.price)||"the renewal amount");
+    return "https://wa.me/"+waNumber(c.phone)+"?text="+encodeURIComponent(msg);
+  }
+  function accOf(c){ return accounts.find(a=>a.id===c.accountId); }
+  // What a customer still owes: null when no price is set
+  function owedOf(c){
+    if(!unpaid(c)||c.stopped) return 0;
+    if(c.price===""||c.price==null) return null;
+    return Math.max(0,Math.round((num(c.price)-num(c.amountPaid))*100)/100);
+  }
+  function payLink(c){
+    const o=owedOf(c);
+    const msg=(settings.payTemplate||DEFAULT_PAY).replaceAll("{name}",c.name||"").replaceAll("{service}",c.service||"")
+      .replaceAll("{amount}",o?usd(o):"the payment");
+    return "https://wa.me/"+waNumber(c.phone)+"?text="+encodeURIComponent(msg);
+  }
+  function codeLink(c){
+    const a=accOf(c);
+    const msg=(settings.codeTemplate||DEFAULT_CODE).replaceAll("{name}",c.name||"").replaceAll("{link}",(a&&a.tempLink)||"");
+    return "https://wa.me/"+waNumber(c.phone)+"?text="+encodeURIComponent(msg);
+  }
+  function loginLink(c){
+    const a=accOf(c)||{};
+    const msg=(settings.loginTemplate||DEFAULT_LOGIN)
+      .replaceAll("{name}",c.name||"").replaceAll("{service}",c.service||"")
+      .replaceAll("{email}",a.login||"").replaceAll("{password}",a.password||"")
+      .replaceAll("{profile}",c.profile||"").replaceAll("{pin}",c.pin||"");
+    return "https://wa.me/"+waNumber(c.phone)+"?text="+encodeURIComponent(msg);
+  }
+  // Balance = what you set + every payment in or out logged after that moment
+  function currentBalance(){
+    if(!balance) return null;
+    return Math.round((num(balance.start)+transactions.filter(t=>!t.imported && (t.loggedAt||"")>balance.since).reduce((s,t)=>s+num(t.amount),0))*100)/100;
+  }
+  function logTx(t){
+    transactions.push(Object.assign({id:newId("t_"),date:todayStr(),amount:0,loggedAt:new Date().toISOString()},t));
+  }
+  function num(v){ return (v===""||v==null||isNaN(v))?0:Number(v); }
+  function unpaid(c){ return c.payStatus==="Pending"||c.payStatus==="Partial"; }
+  function payHtml(c){
+    if(!c.payStatus) return "";
+    if(c.payStatus==="Paid") return '<span class="pill ok">Paid</span><div class="muted">'+esc(money(c.amountPaid))+(c.datePaid?' on '+fmt(c.datePaid):'')+(c.payMethod?' via '+esc(c.payMethod):'')+'</div>';
+    if(c.payStatus==="Partial") return '<span class="pill soon">Partial</span><div class="muted">'+esc(money(c.amountPaid)||"$0")+' of '+esc(money(c.price)||"?")+(c.datePaid?' on '+fmt(c.datePaid):'')+'</div>';
+    return '<span class="pill due">Payment pending</span><div class="muted">'+esc(money(c.price))+' due</div>';
+  }
+  function calLink(title,expiry){
+    let day=addDays(expiry,-3);
+    if(toUTC(day)<toUTC(todayStr())) day=todayStr();
+    const d=day.replace(/-/g,"");
+    const p=new URLSearchParams({action:"TEMPLATE",text:title,dates:d+"T100000/"+d+"T101500",ctz:"Asia/Beirut",details:"Ends on "+fmt(expiry)});
+    return "https://calendar.google.com/calendar/render?"+p.toString();
+  }
+
+  // ---------- storage + sync (Firebase) ----------
+  // Each signed-in person's data lives under users/<their email>, and the
+  // Firestore rules only let that person read or write it.
+  const COLS=["customers","accounts","transactions"];
+  let FS=null, AUTH=null, ROOT=null, ready=false, writeBlocked=false, unsubs=[];
+  const loaded=new Set(), synced={customers:new Map(),accounts:new Map(),transactions:new Map()};
+  let metaSynced=null;
+  const queue=new Map(), inflight=new Set();
+  function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+  function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+  function stable(o){ if(Array.isArray(o)) return "["+o.map(stable).join(",")+"]"; if(o&&typeof o==="object") return "{"+Object.keys(o).filter(k=>o[k]!==undefined).sort().map(k=>JSON.stringify(k)+":"+stable(o[k])).join(",")+"}"; return JSON.stringify(o===undefined?null:o); }
+  function arrOf(col){ return col==="customers"?customers:col==="accounts"?accounts:transactions; }
+  function setArr(col,v){ if(col==="customers") customers=v; else if(col==="accounts") accounts=v; else transactions=v; }
+  function docBody(col,o){ const c=JSON.parse(JSON.stringify(o)); delete c.id; return c; }
+  function isPending(path){ return queue.has(path)||inflight.has(path); }
+  function showBanner(t){ const b=$("#banner"); b.textContent=t||""; b.style.display=t?"block":"none"; }
+  function setSync(){
+    const el=$("#syncState");
+    if(!ready){ el.className="sync busy"; el.textContent="Connecting…"; return; }
+    if(writeBlocked){ el.className="sync off"; el.textContent="Not saving"; return; }
+    const busy=queue.size+inflight.size;
+    if(busy){ el.className="sync busy"; el.textContent=navigator.onLine===false?"Offline, "+busy+" waiting":"Saving "+busy+"…"; }
+    else { el.className="sync"; el.textContent="Synced"; }
+  }
+  function persist(){
+    if(!FS||!ready) return;
+    COLS.forEach(col=>{
+      const seen=new Set();
+      arrOf(col).forEach(o=>{
+        if(!o||!o.id) return;
+        seen.add(o.id);
+        const body=docBody(col,o), k=stable(body);
+        if(synced[col].get(o.id)!==k){ synced[col].set(o.id,k); enqueue(col+"/"+o.id,"set",body); }
+      });
+      [...synced[col].keys()].forEach(id=>{ if(!seen.has(id)){ synced[col].delete(id); enqueue(col+"/"+id,"del"); } });
+    });
+    const meta={settings,balance:balance||null}, mk=stable(meta);
+    if(mk!==metaSynced){ metaSynced=mk; enqueue("meta/app","set",JSON.parse(JSON.stringify(meta))); }
+  }
+  function enqueue(path,op,data){ queue.set(path,{op,data}); pump(); }
+  function pump(){
+    while(inflight.size<6){
+      const path=[...queue.keys()].find(p=>!inflight.has(p));
+      if(!path) break;
+      const job=queue.get(path); queue.delete(path); inflight.add(path);
+      const root=ROOT;
+      (async()=>{
+        try{
+          const ref=FS.doc(root+"/"+path);
+          if(job.op==="del") await ref.delete(); else await ref.set(job.data);
+        }catch(e){
+          const code=e&&e.code;
+          if(root!==ROOT){ /* signed out meanwhile */ }
+          else if(code==="permission-denied"){
+            writeBlocked=true; showBanner("This account isn't allowed to save. Sign out and sign in with the account you set up in Firebase.");
+          } else if(code==="invalid-argument"){
+            showBanner("A change couldn't be saved because it's too large.");
+          } else {
+            setTimeout(()=>{ if(root===ROOT&&!queue.has(path)){ queue.set(path,job); pump(); } },1500+Math.random()*2500);
+          }
+        }finally{
+          inflight.delete(path); setSync(); pump();
+        }
+      })();
+    }
+    setSync();
+  }
+  let renderQueued=false;
+  function scheduleRender(){ if(renderQueued) return; renderQueued=true; requestAnimationFrame(()=>{ renderQueued=false; render(); }); }
+  function onColSnap(col,snap){
+    const local=arrOf(col), byId=new Map(local.map(x=>[x.id,x])), seen=new Set(), next=[];
+    snap.docs.forEach(d=>{
+      seen.add(d.id);
+      const path=col+"/"+d.id;
+      if(isPending(path)){ if(byId.has(d.id)) next.push(byId.get(d.id)); return; }
+      const o=Object.assign({id:d.id},JSON.parse(JSON.stringify(d.data()||{})));
+      next.push(o);
+      synced[col].set(d.id,stable(docBody(col,o)));
+    });
+    local.forEach(x=>{ if(!seen.has(x.id)&&isPending(col+"/"+x.id)) next.push(x); });
+    [...synced[col].keys()].forEach(id=>{ if(!seen.has(id)&&!isPending(col+"/"+id)) synced[col].delete(id); });
+    setArr(col,next);
+    loaded.add(col); afterSnap();
+  }
+  function onMetaSnap(d){
+    if(!isPending("meta/app")){
+      const m=d.exists?(d.data()||{}):{};
+      settings=Object.assign({},DEFAULTS,m.settings||{}); balance=m.balance?Object.assign({},m.balance):null;
+      metaSynced=d.exists?stable({settings,balance}):null;
+    }
+    loaded.add("meta"); afterSnap();
+  }
+  function afterSnap(){
+    if(ready && (customers.length||accounts.length) && /is empty/.test($("#banner").textContent)) showBanner("");
+    if(!ready && loaded.size===4){
+      ready=true;
+      migrate(); persist(); setSync();
+      if(!customers.length&&!accounts.length) showBanner("Your tracker is empty. Use Restore backup (Customers page) to load your customers, or add them one by one.");
+    }
+    if(ready) scheduleRender();
+  }
+  function snapErr(e){
+    if(e&&e.code==="permission-denied") showBanner("This account can't open the tracker data. Sign out and sign in with the account you set up in Firebase.");
+    else showBanner("Live updates stopped. Reload the page to reconnect.");
+    const el=$("#syncState"); el.className="sync off"; el.textContent="Offline";
+  }
+  function load(){}
+  function connect(email){
+    ROOT="users/"+email.toLowerCase();
+    ready=false; writeBlocked=false; loaded.clear(); queue.clear();
+    COLS.forEach(c=>synced[c].clear()); metaSynced=null;
+    customers=[]; accounts=[]; transactions=[]; settings=Object.assign({},DEFAULTS); balance=null;
+    showBanner(""); render(); setSync();
+    COLS.forEach(col=>unsubs.push(FS.collection(ROOT+"/"+col).onSnapshot(snap=>onColSnap(col,snap),snapErr)));
+    unsubs.push(FS.doc(ROOT+"/meta/app").onSnapshot(onMetaSnap,snapErr));
+  }
+  function disconnect(){ unsubs.forEach(u=>{ try{ u(); }catch(e){} }); unsubs=[]; ROOT=null; ready=false; }
+
+  // ---------- sign-in ----------
+  function signinError(e){
+    const m={"auth/invalid-credential":"Wrong email or password.","auth/wrong-password":"Wrong email or password.","auth/user-not-found":"No account with this email yet. Tap Create account.",
+      "auth/email-already-in-use":"This email already has an account. Tap Sign in.","auth/weak-password":"Use a password of at least 6 characters.",
+      "auth/invalid-email":"That email doesn't look right.","auth/network-request-failed":"No internet connection. Try again when you're online.",
+      "auth/unauthorized-domain":"This website isn't allowed in Firebase yet. Add it under Authentication, Settings, Authorized domains.",
+      "auth/operation-not-allowed":"Google sign-in is turned off in Firebase. Turn it on in Authentication, Sign-in method, Google.",
+      "auth/configuration-not-found":"Sign-in isn't set up in Firebase yet. Open Authentication and click Get started, then turn on Google."};
+    const t=e&&e.code in m?m[e.code]:"Sign-in didn't work ("+((e&&e.code)||"unknown error")+").";
+    $("#signinErr").textContent=t;
+  }
+  function startAuth(){
+    let why="";
+    if(location.protocol==="file:") why="This file is open from your computer. Open your GitHub link (https://…github.io/…) instead.";
+    else if(!window.FIREBASE_CONFIG) why="firebase-config.js wasn't found next to index.html. Upload it to the same place in your GitHub repository.";
+    else if(!window.FIREBASE_CONFIG.apiKey||/PASTE/.test(window.FIREBASE_CONFIG.apiKey)) why="firebase-config.js is the old empty version. Upload the new one that has your settings in it.";
+    else if(!window.firebase) why="Firebase couldn't load. Check your internet connection, turn off any ad blocker for this site, and reload.";
+    if(why){
+      $("#signin").hidden=false; $("#signinErr").textContent=why;
+      $("#btnGoogle").disabled=true; return;
+    }
+    firebase.initializeApp(window.FIREBASE_CONFIG);
+    AUTH=firebase.auth(); FS=firebase.firestore();
+    FS.enablePersistence({synchronizeTabs:true}).catch(()=>{});
+    AUTH.getRedirectResult().catch(signinError);
+    AUTH.onAuthStateChanged(async u=>{
+      disconnect();
+      if(u && u.email && (u.emailVerified || u.providerData.some(p=>p.providerId==="google.com"))){
+        $("#signin").hidden=true; $("#app").hidden=false;
+        connect(u.email);
+      } else {
+        $("#app").hidden=true; $("#signin").hidden=false;
+        if(u && !u.emailVerified){
+          $("#signinErr").textContent="Check your inbox for "+u.email+" and open the verification link, then sign in again.";
+          await AUTH.signOut();
+        }
+      }
+    });
+    $("#btnGoogle").addEventListener("click",()=>{
+      $("#signinErr").textContent="Opening Google sign-in…";
+      const provider=new firebase.auth.GoogleAuthProvider();
+      AUTH.signInWithPopup(provider).catch(e=>{
+        if(["auth/popup-blocked","auth/operation-not-supported-in-this-environment","auth/web-storage-unsupported"].includes(e.code)) AUTH.signInWithRedirect(provider);
+        else if(e.code==="auth/popup-closed-by-user"||e.code==="auth/cancelled-popup-request") $("#signinErr").textContent="The Google window was closed before signing in. Try again.";
+        else signinError(e);
+      });
+    });
+    $("#formLogin").addEventListener("submit",e=>{
+      e.preventDefault(); $("#signinErr").textContent="";
+      AUTH.signInWithEmailAndPassword($("#loginEmail").value.trim(),$("#loginPass").value).catch(signinError);
+    });
+    $("#btnCreate").addEventListener("click",async()=>{
+      $("#signinErr").textContent="";
+      const f=$("#formLogin"); if(!f.reportValidity()) return;
+      try{
+        const cred=await AUTH.createUserWithEmailAndPassword($("#loginEmail").value.trim(),$("#loginPass").value);
+        await cred.user.sendEmailVerification();
+      }catch(e){ signinError(e); }
+    });
+    $("#btnSignOut").addEventListener("click",async()=>{ if(await ask("Sign out on this device?","Sign out")) AUTH.signOut(); });
+  }
+
+  // ---------- in-page dialogs (the viewer blocks alert/confirm) ----------
+  function ask(text,okLabel,cancel){
+    return new Promise(res=>{
+      const d=$("#dlgAsk");
+      $("#askText").textContent=text; $("#askOk").textContent=okLabel||"OK";
+      $("#askCancel").hidden=cancel===false;
+      d.returnValue=""; d.showModal();
+      d.addEventListener("close",()=>res(d.returnValue==="ok"),{once:true});
+    });
+  }
+  function note(text){ return ask(text,"OK",false); }
+
+  // Customers added before history existed get one starting entry
+  function migrate(){
+    let changed=false;
+    customers.forEach(c=>{
+      if(!transactions.some(t=>t.customerId===c.id)){
+        logTx({date:c.datePaid||c.start||todayStr(),kind:"New",customerId:c.id,customerName:c.name,service:c.service,months:c.months,
+          amount:num(c.amountPaid),payStatus:c.payStatus||"",method:c.payMethod||"",expiry:c.expiry});
+        changed=true;
+      }
+    });
+    if(changed) persist();
+  }
+  async function put(col,id,data){
+    const arr=col==="customers"?customers:accounts;
+    const i=arr.findIndex(x=>x.id===id);
+    const row=Object.assign({id},data);
+    if(i>=0) arr[i]=row; else arr.push(row);
+    persist(); render();
+  }
+  async function del(col,id){
+    if(col==="customers") customers=customers.filter(x=>x.id!==id); else accounts=accounts.filter(x=>x.id!==id);
+    persist(); render();
+  }
+  function strip(o){ const c=Object.assign({},o); delete c.id; return c; }
+
+  // ---------- render ----------
+  function render(){
+    $("#today").textContent="Today is "+fmt(todayStr());
+    const bal=currentBalance(), bb=$("#btnBalance");
+    bb.textContent=bal===null?"Set balance":usd(bal);
+    bb.classList.toggle("unset",bal===null); bb.classList.toggle("neg",bal!==null&&bal<0);
+    const active=customers.filter(c=>["active","soon"].includes(status(c))).length;
+    const soon=customers.filter(c=>status(c)==="soon").length;
+    const expired=customers.filter(c=>status(c)==="expired").length;
+    const debtors=customers.filter(c=>unpaid(c)&&!c.stopped);
+    const owedTotal=debtors.reduce((s,c)=>s+(owedOf(c)||0),0);
+    $("#summary").innerHTML="<b>"+active+"</b> active, <b>"+soon+"</b> ending within 3 days, <b>"+expired+"</b> expired, <b>"+debtors.length+"</b> payment pending"+(owedTotal?" (<b>"+usd(owedTotal)+"</b> owed)":"");
+    const badge=$("#debtBadge"); badge.hidden=!debtors.length; badge.textContent=debtors.length;
+    renderDue(); renderServices(); renderCustomers(); renderAccounts(); renderDebts(); renderTx(); renderMonthly();
+  }
+
+  function countHtml(d){
+    const cls=d<0?"over":d===0?"zero":"near";
+    const big=d<0?Math.abs(d):d;
+    const label=d<0?(big===1?"day late":"days late"):d===0?"ends today":(d===1?"day left":"days left");
+    return '<div class="count '+cls+'">'+big+'<small>'+label+'</small></div>';
+  }
+
+  function renderDue(){
+    const items=[];
+    customers.forEach(c=>{ const s=status(c); if(s==="soon"||s==="expired") items.push({kind:"c",d:daysLeft(c.expiry),x:c}); });
+    accounts.forEach(a=>{ const d=daysLeft(a.expiry); if(d<=3) items.push({kind:"a",d,x:a}); });
+    items.sort((a,b)=>a.d-b.d);
+    const board=$("#board");
+    board.classList.toggle("calm",items.length===0);
+    $("#boardTitle").textContent=items.length?("Needs a reminder ("+items.length+")"):"Nothing to renew in the next 3 days";
+    if(!items.length){ $("#dueList").innerHTML='<div class="empty">You\'re clear. New alerts appear here automatically 3 days before any end date.</div>'; return; }
+    $("#dueList").innerHTML=items.map(it=>{
+      const x=it.x;
+      if(it.kind==="c"){
+        const reminded=x.remindedFor===x.expiry;
+        return '<div class="due-row">'+countHtml(it.d)+
+          '<div class="who"><b>'+esc(x.name)+'</b>'+(reminded?'<span class="tag done">Reminded</span>':'')+(unpaid(x)?'<span class="tag acc">Payment pending</span>':'')+
+          '<div class="meta">'+esc(x.service)+(x.profile?', '+esc(x.profile):'')+'. Ends '+fmt(x.expiry)+(x.price?'. '+money(x.price):'')+'</div></div>'+
+          '<div class="actions">'+
+            (hasPhone(x)?'<a class="btn small wa" href="'+waLink(x)+'" target="_blank" rel="noopener" data-remind="'+x.id+'">'+(reminded?'Message again':'Send WhatsApp reminder')+'</a>':'<button class="btn small" data-edit="'+x.id+'" type="button">Add number</button>')+
+            '<button class="btn small" data-renew="'+x.id+'" type="button">Renew</button>'+
+            '<button class="btn small ghost" data-stop="'+x.id+'" type="button">Not renewing</button>'+
+          '</div></div>';
+      }
+      return '<div class="due-row">'+countHtml(it.d)+
+        '<div class="who"><b>'+esc(x.service)+'</b><span class="tag acc">Stock account</span>'+
+        '<div class="meta">'+esc(x.login)+'. Pay the platform by '+fmt(x.expiry)+'</div></div>'+
+        '<div class="actions"><button class="btn small" data-accrenew="'+x.id+'" type="button">Renew account</button></div></div>';
+    }).join("");
+  }
+
+  function renderServices(){
+    const sel=$("#fService"), cur=sel.value;
+    const set=[...new Set(customers.map(c=>c.service).filter(Boolean))].sort();
+    sel.innerHTML='<option value="">All services</option>'+set.map(s=>'<option'+(s===cur?' selected':'')+'>'+esc(s)+'</option>').join("");
+  }
+
+  function renderCustomers(){
+    const q=$("#q").value.trim().toLowerCase(), fs=$("#fService").value, fst=$("#fStatus").value;
+    const rows=customers.filter(c=>{
+      if(q && !((c.name||"").toLowerCase().includes(q) || (c.phone||"").replace(/\D/g,"").includes(q.replace(/\D/g,"")||"~"))) return false;
+      if(fs && c.service!==fs) return false;
+      if(fst==="unpaid"){ if(!unpaid(c)) return false; }
+      else if(fst && status(c)!==fst) return false;
+      return true;
+    }).sort((a,b)=>(a.expiry||"").localeCompare(b.expiry||""));
+    if(!customers.length){ $("#custList").innerHTML='<div class="empty" style="padding:20px">No customers yet. Add your first one to start tracking end dates.</div>'; return; }
+    if(!rows.length){ $("#custList").innerHTML='<div class="empty" style="padding:20px">No customers match these filters.</div>'; return; }
+    const pill={active:['ok','Active'],soon:['soon','Ending soon'],expired:['due','Expired'],stopped:['stop','Not renewing']};
+    const accName=id=>{ const a=accounts.find(a=>a.id===id); return a?a.login:""; };
+    $("#custList").innerHTML='<div class="row head"><div>Customer</div><div>Service</div><div>Ends</div><div>Status and payment</div><div></div></div>'+
+      rows.map(c=>{ const s=status(c), d=daysLeft(c.expiry);
+        return '<div class="row">'+
+          '<div><b>'+esc(c.name)+'</b><div class="muted">'+(c.phone?esc(c.phone):'No number yet')+'</div></div>'+
+          '<div>'+esc(c.service)+'<div class="muted">'+esc([c.profile,c.pin?"PIN "+c.pin:"",accName(c.accountId)].filter(Boolean).join(", "))+'</div></div>'+
+          '<div>'+fmt(c.expiry)+'<div class="muted">'+(s==="stopped"?"":d<0?Math.abs(d)+(d===-1?" day ago":" days ago"):d===0?"today":"in "+d+(d===1?" day":" days"))+'</div></div>'+
+          '<div><span class="pill '+pill[s][0]+'">'+pill[s][1]+'</span> '+payHtml(c)+'</div>'+
+          '<div class="actions cell-actions">'+
+            (hasPhone(c)?'<a class="btn small wa" href="'+waLink(c)+'" target="_blank" rel="noopener" data-remind="'+c.id+'" title="Send WhatsApp reminder">WhatsApp</a>':'')+
+            ((hasPhone(c)&&accOf(c)&&accOf(c).tempLink)?'<a class="btn small wa" href="'+codeLink(c)+'" target="_blank" rel="noopener" title="Send the temporary code steps">Code steps</a>':'')+
+            '<a class="btn small" href="'+calLink("Renew "+(c.name||"")+" ("+(c.service||"")+")",c.expiry)+'" target="_blank" rel="noopener" title="Add a phone calendar alert 3 days before the end date">Calendar alert</a>'+
+            '<button class="btn small" data-renew="'+c.id+'" type="button">Renew</button>'+
+            ((hasPhone(c)&&accOf(c))?'<a class="btn small wa" href="'+loginLink(c)+'" target="_blank" rel="noopener" title="Send login details">Send login</a>':'')+
+            ((unpaid(c)&&!c.stopped)?'<button class="btn small primary" data-pay="'+c.id+'" type="button">Got paid</button>':'')+
+            '<button class="btn small ghost" data-history="'+c.id+'" type="button">History</button>'+
+            '<button class="btn small ghost" data-edit="'+c.id+'" type="button">Edit</button>'+
+            '<button class="btn small ghost danger" data-del="'+c.id+'" type="button">Delete</button>'+
+          '</div></div>'; }).join("");
+  }
+
+  const COPY_ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="1.5"/><path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8"/></svg>';
+  function copyBtn(v,what){ return '<button class="copy" type="button" data-copy="'+esc(v)+'" title="Copy" aria-label="Copy '+what+'">'+COPY_ICON+'</button>'; }
+  function renderDebts(){
+    const list=customers.filter(c=>unpaid(c)&&!c.stopped).sort((a,b)=>(owedOf(b)||0)-(owedOf(a)||0)||(a.name||"").localeCompare(b.name||""));
+    const total=list.reduce((s,c)=>s+(owedOf(c)||0),0), noPrice=list.filter(c=>owedOf(c)===null).length;
+    $("#debtTotals").innerHTML='<div class="neg">Owed to you<b>'+usd(total)+'</b></div><div>Customers who owe<b>'+list.length+'</b></div>'+
+      (noPrice?'<div>Amount not set<b>'+noPrice+'</b></div>':'');
+    if(!list.length){ $("#debtList").innerHTML='<div class="empty" style="padding:20px">Nobody owes you right now. When you save a customer or a renewal as Pending or Partial, they show up here until they pay.</div>'; return; }
+    $("#debtList").innerHTML='<div class="row head debt-row"><div>Customer</div><div>Service</div><div>Owes</div><div>Since</div><div></div></div>'+
+      list.map(c=>{
+        const o=owedOf(c);
+        return '<div class="row debt-row">'+
+          '<div><b>'+esc(c.name)+'</b><div class="muted">'+(c.phone?esc(c.phone):'No number yet')+'</div></div>'+
+          '<div>'+esc(c.service)+'<div class="muted">Ends '+fmt(c.expiry)+'</div></div>'+
+          '<div>'+(o===null?'<span class="owed unknown">Amount not set</span>':'<span class="owed">'+usd(o)+'</span>')+
+            '<div class="muted">'+(c.payStatus==="Partial"?'Paid '+esc(money(c.amountPaid)||"$0")+' of '+esc(money(c.price)):'Nothing paid yet')+'</div></div>'+
+          '<div>'+fmt(c.lastRenewed||c.start)+'</div>'+
+          '<div class="actions cell-actions">'+
+            (hasPhone(c)?'<a class="btn small wa" href="'+payLink(c)+'" target="_blank" rel="noopener">Payment reminder</a>':'')+
+            '<button class="btn small primary" data-pay="'+c.id+'" type="button">Got paid</button>'+
+            '<button class="btn small ghost" data-edit="'+c.id+'" type="button">Edit</button>'+
+          '</div></div>';
+      }).join("");
+  }
+
+  function renderAccounts(){
+    if(!accounts.length){ $("#accList").innerHTML='<div class="empty" style="padding:20px">No stock accounts yet. Add one to track its slots and when you need to pay the platform.</div>'; return; }
+    const rows=[...accounts].sort((a,b)=>(a.service||"").localeCompare(b.service||"")||(a.expiry||"9").localeCompare(b.expiry||"9"));
+    $("#accList").innerHTML='<div class="row head acc-row"><div>Email</div><div>Password</div><div>Slots used</div><div>Renews</div><div></div></div>'+
+      rows.map(a=>{
+        const used=customers.filter(c=>c.accountId===a.id && ["active","soon"].includes(status(c))).length;
+        const total=Number(a.slots)||0, d=daysLeft(a.expiry);
+        const members=customers.filter(c=>c.accountId===a.id).sort((x,y)=>(x.expiry||"").localeCompare(y.expiry||""));
+        const extra=[a.service, money(a.cost), a.notes].filter(Boolean).join(" · ");
+        return '<div class="row acc-row">'+
+          '<div style="min-width:0"><div class="copyline"><span><b>'+esc(a.login)+'</b></span>'+copyBtn(a.login,"email")+'</div><div class="muted">'+esc(extra)+'</div></div>'+
+          '<div style="min-width:0">'+(a.password?'<div class="copyline"><span>'+esc(a.password)+'</span>'+copyBtn(a.password,"password")+'</div>':'<span class="muted">No password</span>')+
+            '<div class="muted">'+(a.tempLink?"Code link saved":"No code link")+'</div></div>'+
+          '<div class="slots'+(used>=total?' is-full':'')+'">'+used+' / '+total+'<div class="muted">'+(total-used>0?(total-used)+" free":"Full")+'</div></div>'+
+          '<div>'+fmt(a.expiry)+'<div class="muted">'+(!a.expiry?"Date not set":d<0?Math.abs(d)+(d===-1?" day ago":" days ago"):d===0?"today":"in "+d+(d===1?" day":" days"))+'</div></div>'+
+          '<div class="actions cell-actions">'+
+            (a.expiry?'<a class="btn small" href="'+calLink("Pay "+(a.service||"")+" account ("+(a.login||"")+")",a.expiry)+'" target="_blank" rel="noopener">Calendar alert</a>':'')+
+            '<button class="btn small" data-accrenew="'+a.id+'" type="button">Renew</button>'+
+            '<button class="btn small ghost" data-accedit="'+a.id+'" type="button">Edit</button>'+
+            '<button class="btn small ghost danger" data-accdel="'+a.id+'" type="button">Delete</button>'+
+          '</div>'+
+          '<div class="members">'+(members.length?members.map(c=>'<button type="button" class="member '+status(c)+'" data-edit="'+c.id+'" title="Edit '+esc(c.name)+'">'+esc(c.name)+(c.pin?' · '+esc(c.pin):'')+' · '+fmt(c.expiry)+'</button>').join(""):'<span class="muted">No customers on this account yet</span>')+'</div>'+
+          '</div>';
+      }).join("");
+  }
+
+  // ---------- transactions report ----------
+  function monthStart(d){ return d.slice(0,8)+"01"; }
+  function monthEnd(d){ return addDays(addMonths(monthStart(d),1),-1); }
+  function setRange(r){
+    const t=todayStr();
+    if(r==="today"){ $("#txFrom").value=t; $("#txTo").value=t; }
+    if(r==="month"){ $("#txFrom").value=monthStart(t); $("#txTo").value=monthEnd(t); }
+    if(r==="last"){ const l=addMonths(monthStart(t),-1); $("#txFrom").value=l; $("#txTo").value=monthEnd(l); }
+    if(r==="year"){ $("#txFrom").value=t.slice(0,4)+"-01-01"; $("#txTo").value=t.slice(0,4)+"-12-31"; }
+    renderTx();
+  }
+  function txInRange(){
+    const f=$("#txFrom").value||"0000-00-00", to=$("#txTo").value||"9999-12-31";
+    return transactions.filter(t=>t.date>=f && t.date<=to).sort((a,b)=>(b.date+b.loggedAt).localeCompare(a.date+a.loggedAt));
+  }
+  function sums(list){
+    const income=list.filter(t=>t.kind!=="Stock account").reduce((s,t)=>s+num(t.amount),0);
+    const costs=list.filter(t=>t.kind==="Stock account").reduce((s,t)=>s+Math.abs(num(t.amount)),0);
+    return {income,costs,profit:income-costs};
+  }
+  function usd(n){ const v=Math.round(n*100)/100; return (v<0?"-$":"$")+Math.abs(v).toLocaleString("en-US"); }
+  function txRowHtml(t,showDelete){
+    const out=t.kind==="Stock account";
+    return '<div class="row tx-row">'+
+      '<div>'+fmt(t.date)+'<div class="muted">'+esc(t.kind)+(t.months?", "+t.months+" mo":"")+'</div></div>'+
+      '<div><b>'+esc(t.customerName||"")+'</b><div class="muted">'+esc(t.service||"")+'</div></div>'+
+      '<div>'+esc(t.payStatus||"")+'<div class="muted">'+esc(t.method||"")+(t.expiry?" · until "+fmt(t.expiry):"")+'</div></div>'+
+      '<div class="'+(out||num(t.amount)<0?"amt-out":"amt-in")+'">'+usd(num(t.amount))+'</div>'+
+      '<div class="actions cell-actions">'+(showDelete?'<button class="btn small ghost danger" data-txdel="'+t.id+'" type="button">Delete</button>':'')+'</div>'+
+    '</div>';
+  }
+  function renderTx(){
+    if(!$("#txFrom").value){ const t=todayStr(); $("#txFrom").value=monthStart(t); $("#txTo").value=monthEnd(t); }
+    const list=txInRange(), s=sums(list);
+    $("#txTotals").innerHTML='<div>Customer payments<b>'+usd(s.income)+'</b></div><div>Stock account costs<b>'+usd(s.costs)+'</b></div>'+
+      '<div class="'+(s.profit<0?"neg":"")+'">Profit<b>'+usd(s.profit)+'</b></div><div>Transactions<b>'+list.length+'</b></div>';
+    $("#txList").innerHTML=list.length
+      ? '<div class="row head tx-row"><div>Date</div><div>Customer</div><div>Status</div><div>Amount</div><div></div></div>'+list.map(t=>txRowHtml(t,true)).join("")
+      : '<div class="empty" style="padding:20px">No transactions between these dates.</div>';
+  }
+  $("#txFrom").addEventListener("change",renderTx);
+  $("#txTo").addEventListener("change",renderTx);
+  $("#btnTxExport").addEventListener("click",()=>{
+    const q=v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"';
+    const cols=["date","kind","customerName","service","months","payStatus","method","amount","expiry"];
+    const list=txInRange();
+    const csv=[cols.join(",")].concat(list.map(t=>cols.map(k=>q(t[k])).join(","))).join("\n");
+    saveFile("transactions-"+$("#txFrom").value+"-to-"+$("#txTo").value+".csv","\ufeff"+csv,"text/csv");
+  });
+
+  // ---------- monthly revenue ----------
+  const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+  function renderMonthly(){
+    const sel=$("#mYear"), cur=sel.value||todayStr().slice(0,4);
+    const years=[...new Set(transactions.map(t=>t.date.slice(0,4)).concat([todayStr().slice(0,4)]))].sort().reverse();
+    sel.innerHTML=years.map(y=>'<option'+(y===cur?' selected':'')+'>'+y+'</option>').join("");
+    const rows=MONTHS.map((m,i)=>{
+      const key=cur+"-"+String(i+1).padStart(2,"0");
+      const list=transactions.filter(t=>t.date.startsWith(key));
+      const s=sums(list);
+      return {m,s,newC:list.filter(t=>t.kind==="New").length,ren:list.filter(t=>t.kind==="Renewal").length};
+    });
+    const max=Math.max(1,...rows.map(r=>r.s.income));
+    const tot=rows.reduce((a,r)=>({income:a.income+r.s.income,costs:a.costs+r.s.costs,profit:a.profit+r.s.profit,newC:a.newC+r.newC,ren:a.ren+r.ren}),{income:0,costs:0,profit:0,newC:0,ren:0});
+    $("#mTotals").innerHTML='<div>Revenue '+cur+'<b>'+usd(tot.income)+'</b></div><div>Stock account costs<b>'+usd(tot.costs)+'</b></div>'+
+      '<div class="'+(tot.profit<0?"neg":"")+'">Profit<b>'+usd(tot.profit)+'</b></div>';
+    $("#mList").innerHTML='<div class="row head m-row"><div>Month</div><div>New</div><div>Renewals</div><div>Revenue</div><div>Costs</div><div>Profit</div></div>'+
+      rows.map(r=>'<div class="row m-row"><div><b>'+r.m+'</b></div><div>'+r.newC+'</div><div>'+r.ren+'</div>'+
+        '<div class="amt-in">'+usd(r.s.income)+'<div class="bar" style="width:'+Math.round(r.s.income/max*100)+'%"></div></div>'+
+        '<div>'+usd(r.s.costs)+'</div><div class="'+(r.s.profit<0?"amt-out":"")+'"><b>'+usd(r.s.profit)+'</b></div></div>').join("")+
+      '<div class="row m-row total"><div>Total</div><div>'+tot.newC+'</div><div>'+tot.ren+'</div><div>'+usd(tot.income)+'</div><div>'+usd(tot.costs)+'</div><div>'+usd(tot.profit)+'</div></div>';
+  }
+  $("#mYear").addEventListener("change",renderMonthly);
+
+  // ---------- Excel import ----------
+  let importPlan=null;
+  function loadXLSX(){
+    if(window.XLSX) return Promise.resolve();
+    return new Promise((res,rej)=>{
+      const sc=document.createElement("script");
+      sc.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+      sc.onload=res; sc.onerror=()=>rej(new Error("load"));
+      document.head.appendChild(sc);
+    });
+  }
+  const norm=k=>String(k).toLowerCase().replace(/[^a-z0-9]/g,"");
+  function getter(row){
+    const m={}; Object.keys(row).forEach(k=>m[norm(k)]=row[k]);
+    return (...keys)=>{ for(const k of keys){ const hit=Object.keys(m).find(x=>x.startsWith(k)); if(hit!==undefined){ const v=m[hit]; return typeof v==="string"?v.trim():v; } } return ""; };
+  }
+  function toDate(v){
+    if(v===""||v==null) return "";
+    if(typeof v==="number") return new Date(Date.UTC(1899,11,30)+Math.round(v)*864e5).toISOString().slice(0,10);
+    if(v instanceof Date) return v.getFullYear()+"-"+String(v.getMonth()+1).padStart(2,"0")+"-"+String(v.getDate()).padStart(2,"0");
+    const t=String(v).trim(); let m;
+    if(m=t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/)) return m[1]+"-"+m[2].padStart(2,"0")+"-"+m[3].padStart(2,"0");
+    if(m=t.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})$/)){ const y=m[3].length===2?"20"+m[3]:m[3]; return y+"-"+m[2].padStart(2,"0")+"-"+m[1].padStart(2,"0"); }
+    const mon=["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
+    if(m=t.match(/^(\d{1,2})[\s\-]([a-z]{3})[a-z]*[\s\-](\d{4})$/i)){ const i=mon.indexOf(m[2].toLowerCase()); if(i>=0) return m[3]+"-"+String(i+1).padStart(2,"0")+"-"+m[1].padStart(2,"0"); }
+    return "invalid";
+  }
+  function isExample(v){ return String(v||"").trim().toUpperCase().startsWith("EXAMPLE"); }
+  function findSheet(wb,name){ const n=wb.SheetNames.find(x=>norm(x)===norm(name)); return n?wb.Sheets[n]:null; }
+  function numOrBlank(v){ if(v===""||v==null) return ""; const n=Number(String(v).replace(/[$,\s]/g,"")); return isNaN(n)?"":n; }
+
+  function buildPlan(wb){
+    const plan={newAcc:[],updAcc:[],newCust:[],skipped:[]};
+    const skip=(sheet,row,reason)=>plan.skipped.push({sheet,row,reason});
+    const accByEmail={}; accounts.forEach(a=>{ if(a.login) accByEmail[a.login.toLowerCase()]=a.id; });
+
+    const wsA=findSheet(wb,"Stock accounts");
+    if(wsA) XLSX.utils.sheet_to_json(wsA,{raw:true,defval:""}).forEach(r=>{
+      const g=getter(r), rowN=(r.__rowNum__||0)+1;
+      const service=String(g("service")||""), login=String(g("loginemail","login")||"");
+      if(!service && !login) return;
+      if(isExample(service)||isExample(login)) return;
+      if(!service||!login) return skip("Stock accounts",rowN,"Service and Login email are required");
+      const expiry=toDate(g("accountrenewson","renews","expiry"));
+      if(expiry==="invalid") return skip("Stock accounts",rowN,"Invalid 'Account renews on' date");
+      const data={service,login,password:String(g("password")||""),slots:Number(g("numberofslots","slots"))||"",expiry,
+        cost:numOrBlank(g("cost")),tempLink:String(g("temporarycodelink","temporary")||""),notes:String(g("notes")||"")};
+      const key=login.toLowerCase();
+      if(accByEmail[key] && !accByEmail[key].startsWith("NEW:")) plan.updAcc.push({id:accByEmail[key],data});
+      else if(accByEmail[key]) skip("Stock accounts",rowN,"Login email "+login+" appears twice in the file");
+      else { const id=newId("a_"); accByEmail[key]="NEW:"+id; plan.newAcc.push({id,data}); }
+    });
+    const accId=email=>{ const v=accByEmail[String(email).toLowerCase()]; return v?v.replace(/^NEW:/,""):null; };
+
+    const pinsUsed={};
+    customers.forEach(c=>{ if(c.accountId&&c.pin&&!c.stopped){ (pinsUsed[c.accountId]=pinsUsed[c.accountId]||new Set()).add(c.pin); } });
+    const existingKeys=new Set(); customers.forEach(c=>{ existingKeys.add(custKey(c.phone,c.name,c.service)); existingKeys.add(custKey("",c.name,c.service)); });
+
+    const wsC=findSheet(wb,"Customers");
+    if(wsC) XLSX.utils.sheet_to_json(wsC,{raw:true,defval:""}).forEach(r=>{
+      const g=getter(r), rowN=(r.__rowNum__||0)+1;
+      const name=String(g("name")||""), phone=String(g("whatsapp","phone")||""), service=String(g("service")||"");
+      if(!name && !phone && !service) return;
+      if(isExample(name)) return;
+      if(!name||!service) return skip("Customers",rowN,"Name and Service are required");
+      const key=custKey(phone,name,service);
+      if(existingKeys.has(key)||existingKeys.has(custKey("",name,service))) return skip("Customers",rowN,name+" ("+service+") is already in the tracker or twice in the file");
+      const start=toDate(g("startdate","start"));
+      if(!start||start==="invalid") return skip("Customers",rowN,name+": missing or invalid Start date");
+      const months=Number(g("duration","months"))||1;
+      let expiry=toDate(g("endson","ends","expiry"));
+      if(expiry==="invalid") return skip("Customers",rowN,name+": invalid 'Ends on' date");
+      if(!expiry) expiry=addMonths(start,months);
+      const email=String(g("stockaccountemail","stockaccount","accountemail")||"");
+      let accountId="";
+      if(email){ accountId=accId(email); if(!accountId) return skip("Customers",rowN,name+": stock account "+email+" not found"); }
+      let pin=g("passcode","pin"); pin=pin===""?"":String(pin).replace(/\D/g,"");
+      if(pin && pin.length<4) pin=pin.padStart(4,"0");
+      if(pin && !/^[0-9]{4}$/.test(pin)) return skip("Customers",rowN,name+": passcode must be 4 digits");
+      if(accountId && pin){
+        const set=pinsUsed[accountId]=pinsUsed[accountId]||new Set();
+        set.add(pin);
+      }
+      const price=numOrBlank(g("price"));
+      let payStatus=String(g("paymentstatus","status")||"");
+      payStatus=["paid","pending","partial"].includes(payStatus.toLowerCase())?payStatus[0].toUpperCase()+payStatus.slice(1).toLowerCase():"";
+      let amountPaid=numOrBlank(g("amountpaid"));
+      if(!payStatus) payStatus=amountPaid!==""&&amountPaid>0?"Paid":"Pending";
+      if(payStatus==="Paid" && amountPaid==="" && price!=="") amountPaid=price;
+      let datePaid=toDate(g("datepaid"));
+      if(datePaid==="invalid") return skip("Customers",rowN,name+": invalid 'Date paid'");
+      if(payStatus==="Paid" && !datePaid) datePaid=start;
+      let payMethod=String(g("paidvia","method")||"");
+      payMethod=["whish","omt","cash","other"].includes(payMethod.toLowerCase())?(payMethod.toLowerCase()==="omt"?"OMT":payMethod[0].toUpperCase()+payMethod.slice(1).toLowerCase()):"Whish";
+      existingKeys.add(key); existingKeys.add(custKey("",name,service));
+      plan.newCust.push({id:newId("c_"),data:{name,phone,service,accountId,profile:String(g("profile")||""),pin,start,months,expiry,
+        price,payStatus,amountPaid,datePaid,payMethod,notes:String(g("notes")||""),createdAt:new Date().toISOString()}});
+    });
+    if(!wsA && !wsC) plan.error="This file has no 'Stock accounts' or 'Customers' sheet. Use the import template.";
+    return plan;
+  }
+
+  $("#btnImport").addEventListener("click",()=>$("#fileImport").click());
+  $("#fileImport").addEventListener("change",async e=>{
+    const f=e.target.files[0]; e.target.value=""; if(!f) return;
+    try{ await loadXLSX(); }catch(err){ note("Couldn't load the Excel reader. Check your internet connection and try again."); return; }
+    let wb;
+    try{ wb=XLSX.read(await f.arrayBuffer(),{type:"array"}); }catch(err){ note("Couldn't read this file. Save it as .xlsx and try again."); return; }
+    importPlan=buildPlan(wb);
+    if(importPlan.error){ note(importPlan.error); importPlan=null; return; }
+    const n=importPlan.newAcc.length+importPlan.updAcc.length+importPlan.newCust.length;
+    $("#impTotals").innerHTML='<div>New stock accounts<b>'+importPlan.newAcc.length+'</b></div><div>Updated accounts<b>'+importPlan.updAcc.length+'</b></div>'+
+      '<div>New customers<b>'+importPlan.newCust.length+'</b></div><div class="'+(importPlan.skipped.length?"neg":"")+'">Rows skipped<b>'+importPlan.skipped.length+'</b></div>';
+    $("#impSkipped").innerHTML=importPlan.skipped.length
+      ? '<p class="hint" style="margin:0 0 6px">These rows won\'t be imported. Fix them in Excel and import again later; rows already imported will be skipped automatically.</p>'+
+        importPlan.skipped.map(x=>'<div class="hist"><div>'+esc(x.reason)+'</div><div class="muted" style="color:var(--muted);white-space:nowrap">'+esc(x.sheet)+', row '+x.row+'</div></div>').join("")
+      : (n?'<p class="hint">All rows are ready to import.</p>':'<p class="hint">No rows found. Fill the yellow rows starting from row 3.</p>');
+    $("#btnDoImport").disabled=!n;
+    $("#dlgImport").showModal();
+  });
+  $("#dlgImport").addEventListener("close",()=>{
+    if($("#dlgImport").returnValue!=="import"||!importPlan) { importPlan=null; return; }
+    importPlan.newAcc.forEach(a=>accounts.push(Object.assign({id:a.id},a.data,{slots:a.data.slots||(/shahid/i.test(a.data.service)?4:5)})));
+    importPlan.updAcc.forEach(u=>{ const i=accounts.findIndex(a=>a.id===u.id); if(i>=0){ const filled={}; Object.keys(u.data).forEach(k=>{ if(u.data[k]!==""&&u.data[k]!=null) filled[k]=u.data[k]; }); accounts[i]=Object.assign({},accounts[i],filled); } });
+    importPlan.newCust.forEach(c=>{
+      customers.push(Object.assign({id:c.id},c.data));
+      const d=c.data;
+      logTx({date:d.datePaid||d.start,kind:"New",customerId:c.id,customerName:d.name,service:d.service,months:d.months,
+        amount:num(d.amountPaid),payStatus:d.payStatus,method:d.payMethod,expiry:d.expiry,imported:true});
+    });
+    importPlan=null;
+    persist(); render();
+  });
+
+  // ---------- customer history ----------
+  function openHistory(c){
+    const list=transactions.filter(t=>t.customerId===c.id).sort((a,b)=>(b.date+b.loggedAt).localeCompare(a.date+a.loggedAt));
+    const paid=list.reduce((s,t)=>s+num(t.amount),0);
+    $("#histTitle").textContent=c.name+" history";
+    $("#histTotals").innerHTML='<div>Total paid<b>'+usd(paid)+'</b></div><div>Renewals<b>'+list.filter(t=>t.kind==="Renewal").length+'</b></div><div>Customer since<b style="font-size:1.1rem">'+fmt(c.start)+'</b></div>';
+    $("#histList").innerHTML=list.length?list.map(t=>'<div class="hist"><div><b>'+esc(t.kind)+'</b>'+(t.months?' ('+t.months+' mo)':'')+
+      '<div class="muted" style="color:var(--muted);font-size:.9rem">'+fmt(t.date)+' · '+esc(t.service||"")+(t.method?' · '+esc(t.method):'')+(t.payStatus?' · '+esc(t.payStatus):'')+(t.expiry?' · until '+fmt(t.expiry):'')+'</div></div>'+
+      '<div class="'+(num(t.amount)<0?"amt-out":"amt-in")+'">'+usd(num(t.amount))+'</div></div>').join(""):'<div class="empty">No history yet.</div>';
+    $("#dlgHist").showModal();
+  }
+
+  // ---------- customer form ----------
+  const fc=$("#formCust");
+  function fillAccountSelect(service,selected){
+    const sel=fc.accountId;
+    const list=accounts.filter(a=>!service || (a.service||"").toLowerCase()===service.toLowerCase());
+    sel.innerHTML='<option value="">None</option>'+list.map(a=>'<option value="'+a.id+'"'+(a.id===selected?' selected':'')+'>'+esc(a.service+": "+a.login)+'</option>').join("");
+  }
+  function openCust(c){
+    editingCust=c?c.id:null;
+    $("#custTitle").textContent=c?"Edit customer":"Add customer";
+    fc.reset();
+    const v=c||{start:todayStr(),months:"1",payMethod:"Whish",payStatus:"Paid",datePaid:todayStr()};
+    fc.pin.setCustomValidity("");
+    ["name","phone","service","profile","pin","price","start","notes","payMethod","payStatus","amountPaid","datePaid"].forEach(k=>{ if(v[k]!=null) fc[k].value=v[k]; });
+    fc.months.value=String(v.months||1);
+    fc.expiry.value=v.expiry||addMonths(fc.start.value,Number(fc.months.value));
+    fillAccountSelect(fc.service.value,v.accountId);
+    $("#dlgCust").showModal();
+  }
+  function usedPins(accountId){
+    return customers.filter(c=>c.id!==editingCust && accountId && c.accountId===accountId && !c.stopped && c.pin).map(c=>c.pin);
+  }
+  function pinError(){
+    const pin=fc.pin.value.trim(), acc=fc.accountId.value;
+    if(pin && !/^[0-9]{4}$/.test(pin)) return "The passcode must be exactly 4 digits.";
+    return "";
+  }
+  $("#btnPin").addEventListener("click",()=>{
+    const used=usedPins(fc.accountId.value); let p, tries=0;
+    do{ p=String(Math.floor(Math.random()*10000)).padStart(4,"0"); tries++; }while(used.includes(p)&&tries<500);
+    fc.pin.value=p; fc.pin.setCustomValidity("");
+  });
+  fc.pin.addEventListener("input",()=>fc.pin.setCustomValidity(""));
+  fc.accountId.addEventListener("change",()=>fc.pin.setCustomValidity(""));
+  fc.addEventListener("submit",e=>{
+    if(!e.submitter || e.submitter.value!=="save") return;
+    const err=pinError();
+    if(err){ e.preventDefault(); fc.pin.setCustomValidity(err); fc.pin.reportValidity(); }
+  });
+  function autoExpiry(){ if(fc.start.value) fc.expiry.value=addMonths(fc.start.value,Number(fc.months.value)); }
+  fc.start.addEventListener("change",autoExpiry);
+  fc.months.addEventListener("change",autoExpiry);
+  fc.service.addEventListener("change",()=>fillAccountSelect(fc.service.value,fc.accountId.value));
+  $("#dlgCust").addEventListener("close",async()=>{
+    if($("#dlgCust").returnValue!=="save") return;
+    const old=customers.find(c=>c.id===editingCust)||{};
+    const data=Object.assign(strip(old),{
+      name:fc.name.value.trim(), phone:fc.phone.value.trim(), service:fc.service.value.trim(),
+      accountId:fc.accountId.value, profile:fc.profile.value.trim(), price:fc.price.value===""?"":Number(fc.price.value),
+      start:fc.start.value, months:Number(fc.months.value), expiry:fc.expiry.value, payMethod:fc.payMethod.value, notes:fc.notes.value.trim(),
+      pin:fc.pin.value.trim(), payStatus:fc.payStatus.value,
+      amountPaid:fc.amountPaid.value===""?"":Number(fc.amountPaid.value), datePaid:fc.datePaid.value
+    });
+    if(data.payStatus==="Paid" && data.amountPaid==="" && data.price!=="") data.amountPaid=data.price;
+    if(data.payStatus==="Paid" && !data.datePaid) data.datePaid=todayStr();
+    if(old.expiry && old.expiry!==data.expiry) data.remindedFor="";
+    if(!data.createdAt) data.createdAt=new Date().toISOString();
+    const id=editingCust||newId("c_");
+    const base={customerId:id,customerName:data.name,service:data.service,method:data.payMethod,payStatus:data.payStatus,expiry:data.expiry};
+    if(!editingCust){
+      logTx(Object.assign({date:data.datePaid||data.start||todayStr(),kind:"New",months:data.months,amount:num(data.amountPaid)},base));
+    } else {
+      const diff=num(data.amountPaid)-num(old.amountPaid);
+      if(diff!==0 || old.payStatus!==data.payStatus){
+        logTx(Object.assign({date:data.datePaid||todayStr(),kind:diff<0?"Correction":"Payment",amount:diff},base));
+      }
+    }
+    await put("customers",id,data);
+  });
+
+  // ---------- account form ----------
+  const fa=$("#formAcc");
+  function openAcc(a){
+    editingAcc=a?a.id:null;
+    $("#accTitle").textContent=a?"Edit stock account":"Add stock account";
+    fa.reset();
+    if(a) ["service","login","password","slots","expiry","cost","notes","tempLink"].forEach(k=>{ if(a[k]!=null) fa[k].value=a[k]; });
+    else fa.expiry.value=addMonths(todayStr(),1);
+    $("#dlgAcc").showModal();
+  }
+  fa.service.addEventListener("change",()=>{
+    const v=fa.service.value.trim().toLowerCase();
+    if(v.startsWith("shahid") && fa.slots.value==="5") fa.slots.value="4";
+    else if(v.startsWith("netflix") && fa.slots.value==="4") fa.slots.value="5";
+  });
+  $("#dlgAcc").addEventListener("close",async()=>{
+    if($("#dlgAcc").returnValue!=="save") return;
+    const old=accounts.find(a=>a.id===editingAcc)||{};
+    const data=Object.assign(strip(old),{
+      service:fa.service.value.trim(), login:fa.login.value.trim(), slots:Number(fa.slots.value)||1,
+      expiry:fa.expiry.value, cost:fa.cost.value===""?"":Number(fa.cost.value), notes:fa.notes.value.trim(), tempLink:fa.tempLink.value.trim(), password:fa.password.value
+    });
+    await put("accounts",editingAcc||newId("a_"),data);
+  });
+
+  // ---------- renew ----------
+  const fr=$("#formRenew");
+  function renewBase(c){ return daysLeft(c.expiry)<0?todayStr():c.expiry; }
+  function openRenew(c){
+    renewing=c.id;
+    $("#renewTitle").textContent="Renew "+c.name;
+    fr.reset();
+    fr.months.value=String(c.months||1);
+    fr.expiry.value=addMonths(renewBase(c),Number(fr.months.value));
+    fr.payStatus.value="Paid";
+    fr.price.value=c.price===""||c.price==null?"":c.price;
+    fr.amountPaid.value=c.price===""||c.price==null?"":c.price;
+    fr.datePaid.value=todayStr();
+    fr.payMethod.value=c.payMethod||"Whish";
+    $("#dlgRenew").showModal();
+  }
+  fr.payStatus.addEventListener("change",()=>{ if(fr.payStatus.value==="Pending") fr.amountPaid.value=""; else if(fr.payStatus.value==="Paid"&&!fr.amountPaid.value) fr.amountPaid.value=fr.price.value; });
+  fr.months.addEventListener("change",()=>{ const c=customers.find(x=>x.id===renewing); if(c) fr.expiry.value=addMonths(renewBase(c),Number(fr.months.value)); });
+  $("#dlgRenew").addEventListener("close",()=>{
+    if($("#dlgRenew").returnValue!=="save") return;
+    const c=customers.find(x=>x.id===renewing); if(!c) return;
+    logTx({date:fr.datePaid.value||todayStr(),kind:"Renewal",customerId:c.id,customerName:c.name,service:c.service,
+      months:Number(fr.months.value),amount:num(fr.amountPaid.value),payStatus:fr.payStatus.value,method:fr.payMethod.value,expiry:fr.expiry.value});
+    put("customers",c.id,Object.assign(strip(c),{
+      months:Number(fr.months.value), expiry:fr.expiry.value, stopped:false, price:fr.price.value===""?c.price:Number(fr.price.value), remindedFor:"", lastRenewed:todayStr(),
+      payStatus:fr.payStatus.value, amountPaid:fr.amountPaid.value===""?"":Number(fr.amountPaid.value),
+      datePaid:fr.datePaid.value, payMethod:fr.payMethod.value
+    }));
+  });
+
+  // ---------- balance ----------
+  $("#btnBalance").addEventListener("click",()=>{
+    const v=currentBalance(); $("#formBal").amount.value=v===null?"":v; $("#dlgBal").showModal();
+  });
+  $("#dlgBal").addEventListener("close",()=>{
+    if($("#dlgBal").returnValue!=="save") return;
+    const v=$("#formBal").amount.value; if(v==="") return;
+    balance={start:Number(v),since:new Date().toISOString()};
+    persist(); render();
+  });
+
+  // ---------- renew a stock account ----------
+  const fp=$("#formAccPay");
+  function accBase(a){ return (!a.expiry||daysLeft(a.expiry)<0)?todayStr():a.expiry; }
+  function showBalAfter(){
+    const bal=currentBalance(), cost=num(fp.cost.value);
+    if(bal===null){ $("#accPayBal").innerHTML='Set your balance (top left) and renewals will be taken out of it automatically.'; return; }
+    const after=Math.round((bal-cost)*100)/100;
+    $("#accPayBal").innerHTML='Balance now <b>'+usd(bal)+'</b> → after renewing <b class="'+(after<0?"neg":"")+'">'+usd(after)+'</b>'+(after<0?' (not enough balance)':'');
+  }
+  function openAccPay(a){
+    if(!a) return;
+    payingAcc=a.id;
+    $("#accPayTitle").textContent="Renew "+a.service+" ("+a.login+")";
+    fp.reset();
+    fp.months.value=String(a.months||(/1 year|12 month/i.test(a.notes||"")?12:1));
+    fp.expiry.value=addMonths(accBase(a),Number(fp.months.value));
+    fp.cost.value=a.cost===""||a.cost==null?"":a.cost;
+    showBalAfter();
+    $("#dlgAccPay").showModal();
+  }
+  fp.months.addEventListener("change",()=>{ const a=accounts.find(x=>x.id===payingAcc); if(a) fp.expiry.value=addMonths(accBase(a),Number(fp.months.value)); });
+  fp.cost.addEventListener("input",showBalAfter);
+  $("#dlgAccPay").addEventListener("close",()=>{
+    if($("#dlgAccPay").returnValue!=="save") return;
+    const a=accounts.find(x=>x.id===payingAcc); if(!a) return;
+    const cost=Math.abs(num(fp.cost.value)), months=Number(fp.months.value);
+    logTx({kind:"Stock account",accountId:a.id,customerName:a.login,service:a.service,months,amount:-cost,method:"Balance",payStatus:"Paid",expiry:fp.expiry.value});
+    put("accounts",a.id,Object.assign(strip(a),{expiry:fp.expiry.value,cost,months}));
+  });
+
+  // ---------- got paid ----------
+  const fpay=$("#formPay"); let payingCust=null;
+  function payInfo(){
+    const c=customers.find(x=>x.id===payingCust); if(!c) return;
+    const o=owedOf(c), amt=num(fpay.amount.value), bal=currentBalance();
+    let t=o===null?'No price is set for this customer, so the amount you enter is recorded as fully paid.':
+      (amt>=o?'This clears the debt.':'Still owed after this: <b>'+usd(o-amt)+'</b>');
+    if(bal!==null) t+='<br>Balance after: <b>'+usd(bal+amt)+'</b>';
+    $("#payInfo").innerHTML=t;
+  }
+  function openPay(c){
+    if(!c) return;
+    payingCust=c.id; fpay.reset();
+    const o=owedOf(c);
+    $("#payTitle").textContent=c.name+(o?" owes "+usd(o):" got paid");
+    fpay.amount.value=o||""; fpay.date.value=todayStr(); fpay.method.value=c.payMethod||"Whish";
+    payInfo(); $("#dlgPay").showModal();
+  }
+  fpay.amount.addEventListener("input",payInfo);
+  $("#dlgPay").addEventListener("close",()=>{
+    if($("#dlgPay").returnValue!=="save") return;
+    const c=customers.find(x=>x.id===payingCust); if(!c) return;
+    const amt=Math.abs(num(fpay.amount.value)); if(!amt) return;
+    const paid=Math.round((num(c.amountPaid)+amt)*100)/100;
+    const full=c.price===""||c.price==null||paid>=num(c.price);
+    const st=full?"Paid":"Partial";
+    logTx({date:fpay.date.value||todayStr(),kind:"Payment",customerId:c.id,customerName:c.name,service:c.service,amount:amt,payStatus:st,method:fpay.method.value,expiry:c.expiry});
+    put("customers",c.id,Object.assign(strip(c),{amountPaid:paid,payStatus:st,datePaid:fpay.date.value||todayStr(),payMethod:fpay.method.value}));
+  });
+
+  // ---------- settings ----------
+  $("#btnSettings").addEventListener("click",()=>{ $("#formSet").template.value=settings.template||DEFAULT_TEMPLATE; $("#formSet").codeTemplate.value=settings.codeTemplate||DEFAULT_CODE; $("#formSet").loginTemplate.value=settings.loginTemplate||DEFAULT_LOGIN; $("#formSet").payTemplate.value=settings.payTemplate||DEFAULT_PAY; $("#dlgSet").showModal(); });
+  $("#dlgSet").addEventListener("close",async()=>{
+    if($("#dlgSet").returnValue!=="save") return;
+    settings={template:$("#formSet").template.value.trim()||DEFAULT_TEMPLATE, codeTemplate:$("#formSet").codeTemplate.value.trim()||DEFAULT_CODE, loginTemplate:$("#formSet").loginTemplate.value.trim()||DEFAULT_LOGIN, payTemplate:$("#formSet").payTemplate.value.trim()||DEFAULT_PAY};
+    persist(); render();
+  });
+
+  // ---------- actions ----------
+  document.addEventListener("click",async e=>{
+    const cp=e.target.closest("[data-copy]");
+    if(cp){
+      const done=()=>{ cp.classList.add("done"); cp.title="Copied"; setTimeout(()=>{ cp.classList.remove("done"); cp.title="Copy"; },1200); };
+      try{ await navigator.clipboard.writeText(cp.dataset.copy); done(); }
+      catch(err){ const ta=document.createElement("textarea"); ta.value=cp.dataset.copy; document.body.appendChild(ta); ta.select(); try{ document.execCommand("copy"); done(); }catch(x){} ta.remove(); }
+      return;
+    }
+    const t=e.target.closest("[data-pay],[data-remind],[data-renew],[data-stop],[data-edit],[data-del],[data-accrenew],[data-accedit],[data-accdel],[data-history],[data-txdel],[data-range],.tab");
+    if(!t) return;
+    if(t.classList.contains("tab")){
+      document.querySelectorAll(".tab").forEach(b=>b.setAttribute("aria-selected",b===t?"true":"false"));
+      $("#paneCustomers").hidden=t.dataset.tab!=="customers";
+      $("#paneAccounts").hidden=t.dataset.tab!=="accounts";
+      $("#paneTx").hidden=t.dataset.tab!=="tx";
+      $("#paneMonthly").hidden=t.dataset.tab!=="monthly";
+      $("#paneDebts").hidden=t.dataset.tab!=="debts";
+      $("#pageTitle").textContent=(t.querySelector("span")||t).textContent.trim();
+      $("#board").hidden=!["customers","accounts"].includes(t.dataset.tab);
+      return;
+    }
+    if(t.dataset.pay){ openPay(customers.find(x=>x.id===t.dataset.pay)); return; }
+    if(t.dataset.range){ setRange(t.dataset.range); return; }
+    if(t.dataset.history){ openHistory(customers.find(x=>x.id===t.dataset.history)); return; }
+    if(t.dataset.txdel){
+      const tx=transactions.find(x=>x.id===t.dataset.txdel);
+      if(tx && await ask("Delete this "+usd(num(tx.amount))+" transaction for "+(tx.customerName||"")+"?","Delete")){
+        transactions=transactions.filter(x=>x.id!==tx.id); persist(); render();
+      }
+      return;
+    }
+    if(t.dataset.remind){
+      const c=customers.find(x=>x.id===t.dataset.remind);
+      if(c && c.remindedFor!==c.expiry) put("customers",c.id,Object.assign(strip(c),{remindedFor:c.expiry}));
+      return;
+    }
+    if(t.dataset.renew){
+      const c=customers.find(x=>x.id===t.dataset.renew); if(!c) return;
+      openRenew(c);
+      return;
+    }
+    if(t.dataset.stop){
+      const c=customers.find(x=>x.id===t.dataset.stop);
+      if(c) put("customers",c.id,Object.assign(strip(c),{stopped:true}));
+      return;
+    }
+    if(t.dataset.edit){ openCust(customers.find(x=>x.id===t.dataset.edit)); return; }
+    if(t.dataset.del){
+      const c=customers.find(x=>x.id===t.dataset.del);
+      if(c && await ask("Delete "+c.name+"? This can't be undone.","Delete")) del("customers",c.id);
+      return;
+    }
+    if(t.dataset.accrenew){ openAccPay(accounts.find(x=>x.id===t.dataset.accrenew)); return; }
+    if(t.dataset.accedit){ openAcc(accounts.find(x=>x.id===t.dataset.accedit)); return; }
+    if(t.dataset.accdel){
+      const a=accounts.find(x=>x.id===t.dataset.accdel);
+      if(a && await ask("Delete the "+a.service+" account "+a.login+"? Its customers stay in the tracker.","Delete")) del("accounts",a.id);
+    }
+  });
+
+  $("#btnAddCust").addEventListener("click",()=>openCust(null));
+  $("#btnAddAcc").addEventListener("click",()=>openAcc(null));
+  ["#q","#fService","#fStatus"].forEach(s=>$(s).addEventListener("input",renderCustomers));
+
+  // ---------- export ----------
+  function saveFile(name,text,type){
+    const url=URL.createObjectURL(new Blob([text],{type}));
+    const a=document.createElement("a"); a.href=url; a.download=name; document.body.appendChild(a); a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); },1000);
+  }
+
+  $("#btnExport").addEventListener("click",()=>{
+    const cols=["name","phone","service","profile","pin","start","months","expiry","price","payStatus","amountPaid","datePaid","payMethod","notes"];
+    const q=v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"';
+    const csv=[cols.concat("status").join(",")].concat(customers.map(c=>cols.map(k=>q(c[k])).concat(q(status(c))).join(","))).join("\n");
+    saveFile("customers-"+todayStr()+".csv","\ufeff"+csv,"text/csv");
+  });
+  $("#btnBackup").addEventListener("click",()=>{
+    saveFile("renewals-backup-"+todayStr()+".json",JSON.stringify({customers,accounts,settings,transactions,balance},null,2),"application/json");
+  });
+  $("#btnRestore").addEventListener("click",()=>$("#fileRestore").click());
+  $("#fileRestore").addEventListener("change",e=>{
+    const f=e.target.files[0]; if(!f) return;
+    const r=new FileReader();
+    r.onload=async()=>{
+      e.target.value="";
+      let d;
+      try{ d=JSON.parse(r.result); if(!Array.isArray(d.customers)) throw 0; }
+      catch(err){ note("That file isn't a tracker backup."); return; }
+      if(!await ask("Replace everything in the tracker with this backup ("+d.customers.length+" customers)? This changes it on all your devices.","Replace")) return;
+      customers=d.customers; accounts=d.accounts||[]; transactions=d.transactions||[]; settings=Object.assign({},DEFAULTS,d.settings||{}); balance=d.balance||null;
+      showBanner(""); migrate(); persist(); render();
+    };
+    r.readAsText(f);
+  });
+
+  // Refresh alerts at midnight and when the tab comes back into view
+  document.addEventListener("visibilitychange",()=>{ if(!document.hidden) render(); });
+  setInterval(render,60*60*1000);
+
+  // ---------- theme ----------
+  const THEMEKEY="renewals-theme";
+  const SUN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></svg>';
+  const MOON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z"/></svg>';
+  function isDark(){ const t=document.documentElement.getAttribute("data-theme"); return t?t==="dark":matchMedia("(prefers-color-scheme: dark)").matches; }
+  function themeLabel(){ $("#btnTheme").innerHTML=isDark()?SUN+"Light mode":MOON+"Dark mode"; }
+  const savedTheme=lsGet(THEMEKEY);
+  if(savedTheme==="dark"||savedTheme==="light") document.documentElement.setAttribute("data-theme",savedTheme);
+  $("#btnTheme").addEventListener("click",()=>{
+    const next=isDark()?"light":"dark";
+    document.documentElement.setAttribute("data-theme",next); lsSet(THEMEKEY,next); themeLabel();
+  });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change",themeLabel);
+  themeLabel();
+
+  // ---------- boot ----------
+  render();
+  setSync();
+  try{ startAuth(); }catch(e){ $("#signin").hidden=false; $("#signinErr").textContent="Sign-in couldn't start: "+(e&&e.message||e); }
+  if("serviceWorker" in navigator && location.protocol==="https:") navigator.serviceWorker.register("sw.js").catch(()=>{});
+})();
+</script>
+</body>
+</html>
