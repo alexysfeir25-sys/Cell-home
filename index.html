@@ -669,8 +669,9 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
   }
 
   // ---------- storage + sync (Firebase) ----------
-  // Each signed-in person's data lives under users/<their email>, and the
-  // Firestore rules only let that person read or write it.
+  // Everyone allowed in firestore.rules shares one tracker at shops/cellhome.
+  // Data saved by an earlier version under users/<email> is moved over once.
+  const SHOP="shops/cellhome";
   const COLS=["customers","accounts","transactions"];
   let FS=null, AUTH=null, ROOT=null, ready=false, writeBlocked=false, unsubs=[];
   const loaded=new Set(), synced={customers:new Map(),accounts:new Map(),transactions:new Map()};
@@ -722,7 +723,7 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
           const code=e&&e.code;
           if(root!==ROOT){ /* signed out meanwhile */ }
           else if(code==="permission-denied"){
-            writeBlocked=true; showBanner("This account isn't allowed to save. Sign out and sign in with the account you set up in Firebase.");
+            writeBlocked=true; showBanner("This account ("+EMAIL+") isn't allowed to save. Ask the owner to add it in Firebase.");
           } else if(code==="invalid-argument"){
             showBanner("A change couldn't be saved because it's too large.");
           } else {
@@ -764,19 +765,37 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
     if(ready && (customers.length||accounts.length) && /is empty/.test($("#banner").textContent)) showBanner("");
     if(!ready && loaded.size===4){
       ready=true;
+      if(!customers.length&&!accounts.length&&!transactions.length){ moveOldData(); return; }
       migrate(); persist(); setSync();
-      if(!customers.length&&!accounts.length) showBanner("Your tracker is empty. Use Restore backup (Customers page) to load your customers, or add them one by one.");
     }
     if(ready) scheduleRender();
   }
+  // One-time move from the earlier per-person storage into the shared tracker
+  async function moveOldData(){
+    const root=ROOT, old="users/"+EMAIL;
+    try{
+      const [c,a,t,m]=await Promise.all(COLS.map(col=>FS.collection(old+"/"+col).get()).concat([FS.doc(old+"/meta/app").get()]));
+      if(root!==ROOT) return;
+      if(!c.empty||!a.empty){
+        const rows=snap=>snap.docs.map(d=>Object.assign({id:d.id},d.data()));
+        customers=rows(c); accounts=rows(a); transactions=rows(t);
+        if(m.exists){ const md=m.data()||{}; settings=Object.assign({},DEFAULTS,md.settings||{}); balance=md.balance||null; }
+      }
+    }catch(e){}
+    if(root!==ROOT) return;
+    migrate(); persist(); setSync(); render();
+    if(!customers.length&&!accounts.length) showBanner("Your tracker is empty. Use Restore backup (Customers page) to load your customers, or add them one by one.");
+  }
   function snapErr(e){
-    if(e&&e.code==="permission-denied") showBanner("This account can't open the tracker data. Sign out and sign in with the account you set up in Firebase.");
+    if(e&&e.code==="permission-denied") showBanner("This account ("+EMAIL+") doesn't have access yet. Ask the owner to add it in Firebase, then reload.");
     else showBanner("Live updates stopped. Reload the page to reconnect.");
     const el=$("#syncState"); el.className="sync off"; el.textContent="Offline";
   }
   function load(){}
+  let EMAIL="";
   function connect(email){
-    ROOT="users/"+email.toLowerCase();
+    EMAIL=email.toLowerCase();
+    ROOT=SHOP;
     ready=false; writeBlocked=false; loaded.clear(); queue.clear();
     COLS.forEach(c=>synced[c].clear()); metaSynced=null;
     customers=[]; accounts=[]; transactions=[]; settings=Object.assign({},DEFAULTS); balance=null;
