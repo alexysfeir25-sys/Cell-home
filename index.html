@@ -912,7 +912,7 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
 
   function renderServices(){
     const sel=$("#fService"), cur=sel.value;
-    const set=[...new Set(customers.map(c=>c.service).filter(Boolean))].sort();
+    const set=[...new Set(["Netflix","Shahid VIP","Prime Video"].concat(customers.map(c=>c.service).filter(Boolean)))].sort();
     sel.innerHTML='<option value="">All services</option>'+set.map(s=>'<option'+(s===cur?' selected':'')+'>'+esc(s)+'</option>').join("");
   }
 
