@@ -170,6 +170,10 @@ h1{font:500 1.6rem/1.2 var(--display);margin:0}
 .totals b{display:block;font:500 1.7rem/1.1 var(--display);color:var(--ink)}
 .totals .neg b{color:var(--due)}
 .tx-row{grid-template-columns:.9fr 1.3fr 1.1fr .9fr 90px}
+.cash-row{grid-template-columns:.8fr 1.7fr .8fr .8fr .9fr 90px}
+.cash-type{font-size:.75rem;font-weight:600;padding:2px 8px;border-radius:999px;margin-right:6px}
+.cash-type.in{background:color-mix(in srgb,var(--ok) 15%,transparent);color:var(--ok)}
+.cash-type.out{background:color-mix(in srgb,var(--due) 15%,transparent);color:var(--due)}
 .m-row{grid-template-columns:1fr .8fr .8fr 1fr 1fr 1fr}
 .m-row.total{font-weight:500;background:var(--row)}
 .bar{height:6px;border-radius:3px;background:var(--brand);margin-top:4px;min-width:2px}
@@ -222,7 +226,7 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
 }
 @media (max-width:760px){
   .row.head{display:none}
-  .row,.acc-row,.tx-row,.m-row,.debt-row{grid-template-columns:1fr 1fr;gap:6px 12px}
+  .row,.acc-row,.tx-row,.m-row,.debt-row,.cash-row{grid-template-columns:1fr 1fr;gap:6px 12px}
   .row .cell-actions{grid-column:1/-1;justify-content:flex-start}
   .due-row{grid-template-columns:64px 1fr}
   .due-row .actions{grid-column:1/-1}
@@ -271,6 +275,7 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
     <button class="tab" role="tab" aria-selected="false" data-tab="accounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="2.5" y="4" width="19" height="13" rx="1.5"/><path d="M8 21h8M12 17v4"/></svg>Stock accounts</button>
     <button class="tab" role="tab" aria-selected="false" data-tab="debts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7.5A1.5 1.5 0 0 1 5.5 6H18v3"/><rect x="4" y="9" width="16" height="10" rx="1.5"/><circle cx="16" cy="14" r="1.2" fill="currentColor"/></svg><span>Pending payments</span><span class="nav-badge" id="debtBadge" hidden></span></button>
     <button class="tab" role="tab" aria-selected="false" data-tab="tx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 3h14v18l-2.3-1.5L14.3 21 12 19.5 9.7 21l-2.4-1.5L5 21Z"/><path d="M8.5 8h7M8.5 12h7M8.5 16h4"/></svg>Transactions</button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="cash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="2.5" y="6" width="19" height="12" rx="1.5"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9.5v5M18 9.5v5"/></svg>Money in / out</button>
     <button class="tab" role="tab" aria-selected="false" data-tab="monthly"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 20h16"/><rect x="5.5" y="11" width="3" height="6"/><rect x="10.5" y="7" width="3" height="10"/><rect x="15.5" y="4" width="3" height="13"/></svg>Monthly revenue</button>
   </nav>
   <div class="side-foot">
@@ -335,11 +340,26 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
       <button class="btn small" type="button" data-range="month">This month</button>
       <button class="btn small" type="button" data-range="last">Last month</button>
       <button class="btn small" type="button" data-range="year">This year</button>
+      <button class="btn small" type="button" data-range="all">All time</button>
+      <label>Customer<select id="txCust"><option value="">All customers</option></select></label>
       <span class="spacer"></span>
       <button class="btn small" type="button" id="btnTxExport">Export report</button>
     </div>
     <div class="totals" id="txTotals"></div>
     <div class="list" id="txList"></div>
+  </div>
+
+  <div id="paneCash" hidden>
+    <div class="report-bar">
+      <button class="btn small primary" type="button" id="btnMoneyIn">+ Add money</button>
+      <button class="btn small" type="button" id="btnMoneyOut">− Remove money</button>
+      <span class="spacer"></span>
+      <label>Month<select id="cashMonth"></select></label>
+      <button class="btn small" type="button" id="btnCashExport">Export to Excel</button>
+    </div>
+    <p class="hint" id="cashHint" style="margin:0 0 12px"></p>
+    <div class="totals" id="cashTotals"></div>
+    <div class="list" id="cashList"></div>
   </div>
 
   <div id="paneDebts" hidden>
@@ -362,7 +382,7 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
   <div class="grid">
     <label>Name<input name="name" required></label>
     <label>WhatsApp number<input name="phone" inputmode="tel" placeholder="03 123 456"></label>
-    <label>Service<input name="service" list="serviceList" required placeholder="Netflix"></label>
+    <label>Service<select name="service" required></select></label>
     <label>Stock account<select name="accountId"><option value="">None</option></select></label>
     <label>Profile / slot<input name="profile" placeholder="Profile 3"></label>
     <label>Profile passcode (4 digits)
@@ -418,7 +438,7 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
 <dialog id="dlgAcc"><form class="dlg" method="dialog" id="formAcc">
   <h3 id="accTitle">Add stock account</h3>
   <div class="grid">
-    <label>Service<input name="service" list="serviceList" required placeholder="Shahid VIP"></label>
+    <label>Service<select name="service" required></select></label>
     <label>Login email<input name="login" required placeholder="netflix1@..."></label>
     <label>Password<input name="password" autocomplete="off"></label>
     <label>Number of slots<input name="slots" type="number" min="1" value="5" required></label>
@@ -505,11 +525,29 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
   </div>
 </form></dialog>
 
+<dialog id="dlgMoney"><form class="dlg" method="dialog" id="formMoney">
+  <h3 id="moneyTitle">Add money</h3>
+  <div class="grid">
+    <label>Amount ($)<input name="amount" type="number" min="0.01" step="0.01" required></label>
+    <label>Date<input name="date" type="date" required></label>
+    <label class="full">Reason<input name="reason" list="reasonList" required placeholder="Topped up Whish balance"></label>
+    <label>Method<select name="method"><option>Cash</option><option>Whish</option><option>OMT</option><option>Other</option></select></label>
+  </div>
+  <p class="hint" id="moneyHint"></p>
+  <div class="actions">
+    <button class="btn ghost" value="cancel" formnovalidate type="submit">Cancel</button>
+    <button class="btn primary" value="save" type="submit" id="moneySave">Save</button>
+  </div>
+</form></dialog>
+<datalist id="reasonList">
+  <option value="Topped up Whish balance"><option value="Personal withdrawal"><option value="Shop expense"><option value="Gift card purchase"><option value="Correction">
+</datalist>
+
 <dialog id="dlgHist"><form class="dlg" method="dialog">
   <h3 id="histTitle">History</h3>
   <div class="totals" id="histTotals"></div>
   <div id="histList"></div>
-  <div class="actions"><button class="btn primary" value="close" type="submit">Close</button></div>
+  <div class="actions"><button class="btn ghost" type="button" id="histFull">Open in Transactions</button><button class="btn primary" value="close" type="submit">Close</button></div>
 </form></dialog>
 
 <dialog id="dlgImport"><form class="dlg" method="dialog">
@@ -598,6 +636,20 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
     return "https://wa.me/"+waNumber(c.phone)+"?text="+encodeURIComponent(msg);
   }
   function accOf(c){ return accounts.find(a=>a.id===c.accountId); }
+  const SERVICES=["Netflix","Shahid VIP","Prime Video","Anghami Plus","OSN+"];
+  function normService(s){
+    const v=String(s||"").trim();
+    if(/^(pr|pri|prim|prime|prime ?video|amazon|amazon ?prime( ?video)?)$/i.test(v)) return "Prime Video";
+    if(/^netflix$/i.test(v)) return "Netflix";
+    if(/^shahid( ?vip)?$/i.test(v)) return "Shahid VIP";
+    return v;
+  }
+  function serviceOptions(sel,current){
+    const list=SERVICES.slice(); if(current && !list.includes(current)) list.push(current);
+    sel.innerHTML=list.map(s=>'<option>'+esc(s)+'</option>').join("");
+    sel.value=current||"Netflix";
+  }
+  const isCash=t=>t.kind==="Money in"||t.kind==="Money out";
   // What a customer still owes: null when no price is set
   function owedOf(c){
     if(!unpaid(c)||c.stopped) return 0;
@@ -836,6 +888,9 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
   // Customers added before history existed get one starting entry
   function migrate(){
     let changed=false;
+    [customers,accounts,transactions].forEach(arr=>arr.forEach(x=>{
+      if(x.service){ const s=normService(x.service); if(s!==x.service){ x.service=s; changed=true; } }
+    }));
     customers.forEach(c=>{
       if(!transactions.some(t=>t.customerId===c.id)){
         logTx({date:c.datePaid||c.start||todayStr(),kind:"New",customerId:c.id,customerName:c.name,service:c.service,months:c.months,
@@ -871,7 +926,7 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
     const owedTotal=debtors.reduce((s,c)=>s+(owedOf(c)||0),0);
     $("#summary").innerHTML="<b>"+active+"</b> active, <b>"+soon+"</b> ending within 3 days, <b>"+expired+"</b> expired, <b>"+debtors.length+"</b> payment pending"+(owedTotal?" (<b>"+usd(owedTotal)+"</b> owed)":"");
     const badge=$("#debtBadge"); badge.hidden=!debtors.length; badge.textContent=debtors.length;
-    renderDue(); renderServices(); renderCustomers(); renderAccounts(); renderDebts(); renderTx(); renderMonthly();
+    renderDue(); renderServices(); renderCustomers(); renderAccounts(); renderDebts(); renderTx(); renderCash(); renderMonthly();
   }
 
   function countHtml(d){
@@ -912,7 +967,7 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
 
   function renderServices(){
     const sel=$("#fService"), cur=sel.value;
-    const set=[...new Set(["Netflix","Shahid VIP","Prime Video"].concat(customers.map(c=>c.service).filter(Boolean)))].sort();
+    const set=[...new Set(SERVICES.concat(customers.map(c=>c.service).filter(Boolean)))];
     sel.innerHTML='<option value="">All services</option>'+set.map(s=>'<option'+(s===cur?' selected':'')+'>'+esc(s)+'</option>').join("");
   }
 
@@ -1010,14 +1065,16 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
     if(r==="month"){ $("#txFrom").value=monthStart(t); $("#txTo").value=monthEnd(t); }
     if(r==="last"){ const l=addMonths(monthStart(t),-1); $("#txFrom").value=l; $("#txTo").value=monthEnd(l); }
     if(r==="year"){ $("#txFrom").value=t.slice(0,4)+"-01-01"; $("#txTo").value=t.slice(0,4)+"-12-31"; }
+    if(r==="all"){ $("#txFrom").value="2000-01-01"; $("#txTo").value="2099-12-31"; }
     renderTx();
   }
   function txInRange(){
     const f=$("#txFrom").value||"0000-00-00", to=$("#txTo").value||"9999-12-31";
-    return transactions.filter(t=>t.date>=f && t.date<=to).sort((a,b)=>(b.date+b.loggedAt).localeCompare(a.date+a.loggedAt));
+    const cu=$("#txCust").value;
+    return transactions.filter(t=>t.date>=f && t.date<=to && (!cu||t.customerId===cu)).sort((a,b)=>(b.date+b.loggedAt).localeCompare(a.date+a.loggedAt));
   }
   function sums(list){
-    const income=list.filter(t=>t.kind!=="Stock account").reduce((s,t)=>s+num(t.amount),0);
+    const income=list.filter(t=>t.kind!=="Stock account"&&!isCash(t)).reduce((s,t)=>s+num(t.amount),0);
     const costs=list.filter(t=>t.kind==="Stock account").reduce((s,t)=>s+Math.abs(num(t.amount)),0);
     return {income,costs,profit:income-costs};
   }
@@ -1026,7 +1083,7 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
     const out=t.kind==="Stock account";
     return '<div class="row tx-row">'+
       '<div>'+fmt(t.date)+'<div class="muted">'+esc(t.kind)+(t.months?", "+t.months+" mo":"")+'</div></div>'+
-      '<div><b>'+esc(t.customerName||"")+'</b><div class="muted">'+esc(t.service||"")+'</div></div>'+
+      '<div><b>'+esc(isCash(t)?(t.reason||""):(t.customerName||""))+'</b><div class="muted">'+esc(isCash(t)?"Money "+(num(t.amount)<0?"removed":"added"):(t.service||""))+'</div></div>'+
       '<div>'+esc(t.payStatus||"")+'<div class="muted">'+esc(t.method||"")+(t.expiry?" · until "+fmt(t.expiry):"")+'</div></div>'+
       '<div class="'+(out||num(t.amount)<0?"amt-out":"amt-in")+'">'+usd(num(t.amount))+'</div>'+
       '<div class="actions cell-actions">'+(showDelete?'<button class="btn small ghost danger" data-txdel="'+t.id+'" type="button">Delete</button>':'')+'</div>'+
@@ -1034,7 +1091,13 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
   }
   function renderTx(){
     if(!$("#txFrom").value){ const t=todayStr(); $("#txFrom").value=monthStart(t); $("#txTo").value=monthEnd(t); }
+    const cs=$("#txCust"), cur=cs.value;
+    cs.innerHTML='<option value="">All customers</option>'+[...customers].sort((a,b)=>(a.name||"").localeCompare(b.name||"")).map(c=>'<option value="'+c.id+'"'+(c.id===cur?' selected':'')+'>'+esc(c.name)+(c.service?" ("+esc(c.service)+")":"")+'</option>').join("");
     const list=txInRange(), s=sums(list);
+    const sc=customers.find(c=>c.id===cs.value);
+    if(sc){
+      $("#txTotals").innerHTML='<div>'+esc(sc.name)+' paid<b>'+usd(s.income)+'</b></div><div>Renewals<b>'+list.filter(t=>t.kind==="Renewal").length+'</b></div><div>Customer since<b>'+fmt(sc.start)+'</b></div><div>Ends<b>'+fmt(sc.expiry)+'</b></div>';
+    } else
     $("#txTotals").innerHTML='<div>Customer payments<b>'+usd(s.income)+'</b></div><div>Stock account costs<b>'+usd(s.costs)+'</b></div>'+
       '<div class="'+(s.profit<0?"neg":"")+'">Profit<b>'+usd(s.profit)+'</b></div><div>Transactions<b>'+list.length+'</b></div>';
     $("#txList").innerHTML=list.length
@@ -1043,12 +1106,75 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
   }
   $("#txFrom").addEventListener("change",renderTx);
   $("#txTo").addEventListener("change",renderTx);
+  $("#txCust").addEventListener("change",()=>{ if($("#txCust").value) setRange("all"); else setRange("month"); });
   $("#btnTxExport").addEventListener("click",()=>{
     const q=v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"';
     const cols=["date","kind","customerName","service","months","payStatus","method","amount","expiry"];
     const list=txInRange();
     const csv=[cols.join(",")].concat(list.map(t=>cols.map(k=>q(t[k])).join(","))).join("\n");
     saveFile("transactions-"+$("#txFrom").value+"-to-"+$("#txTo").value+".csv","\ufeff"+csv,"text/csv");
+  });
+
+  // ---------- money in / out ----------
+  let moneyDir="in";
+  function cashList(){
+    const m=$("#cashMonth").value;
+    return transactions.filter(t=>isCash(t)&&(!m||t.date.startsWith(m))).sort((a,b)=>(a.date+a.loggedAt).localeCompare(b.date+b.loggedAt));
+  }
+  function renderCash(){
+    const sel=$("#cashMonth"), cur=sel.value;
+    const months=[...new Set(transactions.filter(isCash).map(t=>t.date.slice(0,7)).concat([todayStr().slice(0,7)]))].sort().reverse();
+    sel.innerHTML='<option value="">All months</option>'+months.map(m=>'<option value="'+m+'"'+(m===cur?' selected':'')+'>'+MONTHS[Number(m.slice(5,7))-1]+" "+m.slice(0,4)+'</option>').join("");
+    const list=cashList();
+    const added=list.filter(t=>num(t.amount)>0).reduce((s,t)=>s+num(t.amount),0);
+    const removed=list.filter(t=>num(t.amount)<0).reduce((s,t)=>s-num(t.amount),0);
+    $("#cashHint").textContent=balance?"Every entry here also updates your balance at the top.":"Tip: set your balance (top of the menu) so these entries update it automatically.";
+    $("#cashTotals").innerHTML='<div>Added<b style="color:var(--ok)">'+usd(added)+'</b></div><div>Removed<b style="color:var(--due)">'+usd(removed)+'</b></div><div class="'+(added-removed<0?"neg":"")+'">Net<b>'+usd(added-removed)+'</b></div><div>Entries<b>'+list.length+'</b></div>';
+    if(!list.length){ $("#cashList").innerHTML='<div class="empty" style="padding:20px">No money added or removed'+(cur?' this month':'')+' yet. Use “+ Add money” or “− Remove money” and write the reason.</div>'; return; }
+    let run=0;
+    const rows=list.map(t=>{ run+=num(t.amount); const inn=num(t.amount)>=0;
+      return '<div class="row cash-row"><div>'+fmt(t.date)+'</div>'+
+        '<div><span class="cash-type '+(inn?"in":"out")+'">'+(inn?"Added":"Removed")+'</span><b>'+esc(t.reason||"")+'</b></div>'+
+        '<div>'+esc(t.method||"")+'</div>'+
+        '<div class="'+(inn?"amt-in":"amt-out")+'">'+usd(num(t.amount))+'</div>'+
+        '<div><span class="muted">Running</span> '+usd(run)+'</div>'+
+        '<div class="actions cell-actions"><button class="btn small ghost danger" data-txdel="'+t.id+'" type="button">Delete</button></div></div>'; });
+    $("#cashList").innerHTML='<div class="row head cash-row"><div>Date</div><div>Reason</div><div>Method</div><div>Amount</div><div>Running total</div><div></div></div>'+rows.reverse().join("");
+  }
+  $("#cashMonth").addEventListener("change",renderCash);
+  function openMoney(dir){
+    moneyDir=dir; const f=$("#formMoney"); f.reset();
+    f.date.value=todayStr();
+    $("#moneyTitle").textContent=dir==="in"?"Add money":"Remove money";
+    $("#moneySave").textContent=dir==="in"?"Add money":"Remove money";
+    $("#moneyHint").textContent=dir==="in"?"For money you put in that isn't a customer payment, like topping up your Whish balance.":"For money you take out that isn't a stock account payment, like a withdrawal or a shop expense.";
+    $("#dlgMoney").showModal();
+  }
+  $("#btnMoneyIn").addEventListener("click",()=>openMoney("in"));
+  $("#btnMoneyOut").addEventListener("click",()=>openMoney("out"));
+  $("#dlgMoney").addEventListener("close",()=>{
+    if($("#dlgMoney").returnValue!=="save") return;
+    const f=$("#formMoney"), a=Math.abs(Number(f.amount.value));
+    if(!a) return;
+    const reason=f.reason.value.trim();
+    logTx({date:f.date.value||todayStr(),kind:moneyDir==="in"?"Money in":"Money out",amount:moneyDir==="in"?a:-a,method:f.method.value,reason,customerName:reason});
+    persist(); render();
+  });
+  $("#btnCashExport").addEventListener("click",async()=>{
+    const list=cashList(); let run=0;
+    const aoa=[["Date","Type","Reason","Method","Amount ($)","Running total ($)"]].concat(list.map(t=>{ run+=num(t.amount); return [t.date,num(t.amount)>=0?"Added":"Removed",t.reason||"",t.method||"",num(t.amount),Math.round(run*100)/100]; }));
+    const added=list.filter(t=>num(t.amount)>0).reduce((s,t)=>s+num(t.amount),0), removed=list.filter(t=>num(t.amount)<0).reduce((s,t)=>s-num(t.amount),0);
+    aoa.push([],["","Total added","","",Math.round(added*100)/100],["","Total removed","","",-Math.round(removed*100)/100],["","Net","","",Math.round((added-removed)*100)/100]);
+    const name="money-in-out-"+($("#cashMonth").value||"all");
+    try{
+      await loadXLSX();
+      const ws=XLSX.utils.aoa_to_sheet(aoa); ws["!cols"]=[{wch:12},{wch:10},{wch:34},{wch:10},{wch:12},{wch:16}];
+      const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Money in-out");
+      XLSX.writeFile(wb,name+".xlsx");
+    }catch(e){
+      const q=v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"';
+      saveFile(name+".csv","\ufeff"+aoa.map(r=>r.map(q).join(",")).join("\n"),"text/csv");
+    }
   });
 
   // ---------- monthly revenue ----------
@@ -1218,8 +1344,15 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
     $("#histList").innerHTML=list.length?list.map(t=>'<div class="hist"><div><b>'+esc(t.kind)+'</b>'+(t.months?' ('+t.months+' mo)':'')+
       '<div class="muted" style="color:var(--muted);font-size:.9rem">'+fmt(t.date)+' · '+esc(t.service||"")+(t.method?' · '+esc(t.method):'')+(t.payStatus?' · '+esc(t.payStatus):'')+(t.expiry?' · until '+fmt(t.expiry):'')+'</div></div>'+
       '<div class="'+(num(t.amount)<0?"amt-out":"amt-in")+'">'+usd(num(t.amount))+'</div></div>').join(""):'<div class="empty">No history yet.</div>';
+    histCust=c.id;
     $("#dlgHist").showModal();
   }
+  let histCust=null;
+  $("#histFull").addEventListener("click",()=>{
+    $("#dlgHist").close();
+    document.querySelector('.tab[data-tab="tx"]').click();
+    renderTx(); $("#txCust").value=histCust||""; setRange("all");
+  });
 
   // ---------- customer form ----------
   const fc=$("#formCust");
@@ -1234,7 +1367,8 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
     fc.reset();
     const v=c||{start:todayStr(),months:"1",payMethod:"Whish",payStatus:"Paid",datePaid:todayStr()};
     fc.pin.setCustomValidity("");
-    ["name","phone","service","profile","pin","price","start","notes","payMethod","payStatus","amountPaid","datePaid"].forEach(k=>{ if(v[k]!=null) fc[k].value=v[k]; });
+    serviceOptions(fc.service,normService(v.service)||"Netflix");
+    ["name","phone","profile","pin","price","start","notes","payMethod","payStatus","amountPaid","datePaid"].forEach(k=>{ if(v[k]!=null) fc[k].value=v[k]; });
     fc.months.value=String(v.months||1);
     fc.expiry.value=v.expiry||addMonths(fc.start.value,Number(fc.months.value));
     fillAccountSelect(fc.service.value,v.accountId);
@@ -1297,7 +1431,8 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
     editingAcc=a?a.id:null;
     $("#accTitle").textContent=a?"Edit stock account":"Add stock account";
     fa.reset();
-    if(a) ["service","login","password","slots","expiry","cost","notes","tempLink"].forEach(k=>{ if(a[k]!=null) fa[k].value=a[k]; });
+    serviceOptions(fa.service,normService(a&&a.service)||"Netflix");
+    if(a) ["login","password","slots","expiry","cost","notes","tempLink"].forEach(k=>{ if(a[k]!=null) fa[k].value=a[k]; });
     else fa.expiry.value=addMonths(todayStr(),1);
     $("#dlgAcc").showModal();
   }
@@ -1483,6 +1618,7 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
       $("#paneCustomers").hidden=t.dataset.tab!=="customers";
       $("#paneAccounts").hidden=t.dataset.tab!=="accounts";
       $("#paneTx").hidden=t.dataset.tab!=="tx";
+      $("#paneCash").hidden=t.dataset.tab!=="cash";
       $("#paneMonthly").hidden=t.dataset.tab!=="monthly";
       $("#paneDebts").hidden=t.dataset.tab!=="debts";
       $("#pageTitle").textContent=(t.querySelector("span")||t).textContent.trim();
