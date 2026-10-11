@@ -539,7 +539,7 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
 </form></dialog>
 
 <datalist id="serviceList">
-  <option value="Netflix"><option value="Shahid VIP"><option value="Anghami Plus"><option value="OSN+">
+  <option value="Netflix"><option value="Shahid VIP"><option value="Prime Video"><option value="Anghami Plus"><option value="OSN+">
   <option value="StarzPlay"><option value="YouTube Premium"><option value="Spotify"><option value="TOD">
 </datalist>
 
@@ -1197,7 +1197,7 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
   });
   $("#dlgImport").addEventListener("close",()=>{
     if($("#dlgImport").returnValue!=="import"||!importPlan) { importPlan=null; return; }
-    importPlan.newAcc.forEach(a=>accounts.push(Object.assign({id:a.id},a.data,{slots:a.data.slots||(/shahid/i.test(a.data.service)?4:5)})));
+    importPlan.newAcc.forEach(a=>accounts.push(Object.assign({id:a.id},a.data,{slots:a.data.slots||(/shahid/i.test(a.data.service)?4:/prime/i.test(a.data.service)?6:5)})));
     importPlan.updAcc.forEach(u=>{ const i=accounts.findIndex(a=>a.id===u.id); if(i>=0){ const filled={}; Object.keys(u.data).forEach(k=>{ if(u.data[k]!==""&&u.data[k]!=null) filled[k]=u.data[k]; }); accounts[i]=Object.assign({},accounts[i],filled); } });
     importPlan.newCust.forEach(c=>{
       customers.push(Object.assign({id:c.id},c.data));
@@ -1303,8 +1303,11 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
   }
   fa.service.addEventListener("change",()=>{
     const v=fa.service.value.trim().toLowerCase();
-    if(v.startsWith("shahid") && fa.slots.value==="5") fa.slots.value="4";
-    else if(v.startsWith("netflix") && fa.slots.value==="4") fa.slots.value="5";
+    const s=fa.slots.value;
+    if(!["4","5","6"].includes(s)) return;
+    if(v.startsWith("shahid")) fa.slots.value="4";
+    else if(v.startsWith("netflix")) fa.slots.value="5";
+    else if(v.startsWith("prime")||v.startsWith("amazon")) fa.slots.value="6";
   });
   $("#dlgAcc").addEventListener("close",async()=>{
     if($("#dlgAcc").returnValue!=="save") return;
