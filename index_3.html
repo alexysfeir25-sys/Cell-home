@@ -142,6 +142,12 @@ h1{font:500 1.6rem/1.2 var(--display);margin:0}
 .acc-row{grid-template-columns:1.5fr 1fr .6fr .9fr 330px}
 .cell-actions{justify-content:flex-end}
 .slots{font-weight:500}
+.acc-groups{display:flex;flex-direction:column;gap:22px}
+.acc-sec-head{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:4px 14px;margin:0 2px 8px}
+.acc-sec-head h2{margin:0;font:500 1.25rem var(--display)}
+.acc-sec-head .muted{color:var(--muted);font-size:.88rem}
+.acc-sec-head .free{font-weight:600;color:var(--ok)}
+.acc-sec-head .free.none{color:var(--due)}
 .slots.is-full{color:var(--due)}
 .copyline{display:flex;align-items:center;gap:6px;min-width:0}
 .copyline span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -233,6 +239,37 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
   .count{font-size:1.9rem}
   .grid{grid-template-columns:1fr}
 }
+.lbl-s{display:none}
+@media (max-width:760px){
+  /* phone: tabs become a bottom bar */
+  .nav{position:fixed;left:0;right:0;bottom:0;z-index:50;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:2px;
+       background:var(--side);border-top:1px solid var(--line);padding:5px 4px calc(5px + env(safe-area-inset-bottom,0px));overflow:visible;box-shadow:0 -4px 14px rgba(0,0,0,.08)}
+  .tab{flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 2px;font-size:.7rem;line-height:1.2;text-align:center;border-radius:8px;position:relative;min-width:0}
+  .tab svg{display:block;width:22px;height:22px}
+  .tab .lbl{display:none}
+  .tab .lbl-s{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  .nav-badge{position:absolute;top:2px;right:calc(50% - 22px);margin:0;font-size:.65rem;padding:0 5px}
+  .main{padding:14px 14px calc(84px + env(safe-area-inset-bottom,0px))}
+  .side-foot{gap:0;padding:2px 8px 6px}
+  .side-link{font-size:.85rem;padding:6px 8px}
+  .side-link svg{width:17px;height:17px}
+  h1#pageTitle{font-size:1.5rem}
+  .top{gap:10px;margin-bottom:14px}
+  .top .actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;gap:6px}
+  .top .actions .btn{padding:9px 4px;font-size:.84rem;text-align:center;justify-content:center;white-space:nowrap}
+  /* buttons under each customer stay on one line you can swipe */
+  .row .cell-actions,.due-row .actions{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
+  .row .cell-actions::-webkit-scrollbar,.due-row .actions::-webkit-scrollbar{display:none}
+  .cell-actions .btn,.due-row .actions .btn{flex:none}
+  .toolbar input{flex:1 1 100%}
+  .toolbar select{flex:1 1 40%}
+  .report-bar label{flex:1 1 40%}
+  .report-bar label select,.report-bar label input{width:100%}
+  input,select,textarea{font-size:16px!important}
+  .totals{gap:16px 22px}
+  .totals b{font-size:1.4rem}
+  dialog{max-width:calc(100vw - 20px)}
+}
 @media (prefers-reduced-motion:no-preference){
   .board:not(.calm){animation:pulse 1.2s ease-out 1}
   @keyframes pulse{from{box-shadow:0 0 0 0 color-mix(in srgb,var(--due) 40%,transparent)}to{box-shadow:0 0 0 12px transparent}}
@@ -271,17 +308,17 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
     </div>
   </div>
   <nav class="nav" role="tablist" aria-label="Sections">
-    <button class="tab" role="tab" aria-selected="true" data-tab="customers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.3 2.9-5.5 6.5-5.5s6.5 2.2 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.8c2 .7 3.5 2.5 3.5 5.2"/></svg>Customers</button>
-    <button class="tab" role="tab" aria-selected="false" data-tab="accounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="2.5" y="4" width="19" height="13" rx="1.5"/><path d="M8 21h8M12 17v4"/></svg>Stock accounts</button>
-    <button class="tab" role="tab" aria-selected="false" data-tab="debts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7.5A1.5 1.5 0 0 1 5.5 6H18v3"/><rect x="4" y="9" width="16" height="10" rx="1.5"/><circle cx="16" cy="14" r="1.2" fill="currentColor"/></svg><span>Pending payments</span><span class="nav-badge" id="debtBadge" hidden></span></button>
-    <button class="tab" role="tab" aria-selected="false" data-tab="tx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 3h14v18l-2.3-1.5L14.3 21 12 19.5 9.7 21l-2.4-1.5L5 21Z"/><path d="M8.5 8h7M8.5 12h7M8.5 16h4"/></svg>Transactions</button>
-    <button class="tab" role="tab" aria-selected="false" data-tab="cash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="2.5" y="6" width="19" height="12" rx="1.5"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9.5v5M18 9.5v5"/></svg>Money in / out</button>
-    <button class="tab" role="tab" aria-selected="false" data-tab="monthly"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 20h16"/><rect x="5.5" y="11" width="3" height="6"/><rect x="10.5" y="7" width="3" height="10"/><rect x="15.5" y="4" width="3" height="13"/></svg>Monthly revenue</button>
+    <button class="tab" role="tab" aria-selected="true" data-tab="customers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.3 2.9-5.5 6.5-5.5s6.5 2.2 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.8c2 .7 3.5 2.5 3.5 5.2"/></svg><span class="lbl">Customers</span><span class="lbl-s">Clients</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="accounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="2.5" y="4" width="19" height="13" rx="1.5"/><path d="M8 21h8M12 17v4"/></svg><span class="lbl">Stock accounts</span><span class="lbl-s">Accounts</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="debts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7.5A1.5 1.5 0 0 1 5.5 6H18v3"/><rect x="4" y="9" width="16" height="10" rx="1.5"/><circle cx="16" cy="14" r="1.2" fill="currentColor"/></svg><span class="lbl">Pending payments</span><span class="lbl-s">Pending</span><span class="nav-badge" id="debtBadge" hidden></span></button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="tx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 3h14v18l-2.3-1.5L14.3 21 12 19.5 9.7 21l-2.4-1.5L5 21Z"/><path d="M8.5 8h7M8.5 12h7M8.5 16h4"/></svg><span class="lbl">Transactions</span><span class="lbl-s">History</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="cash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="2.5" y="6" width="19" height="12" rx="1.5"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9.5v5M18 9.5v5"/></svg><span class="lbl">Money in / out</span><span class="lbl-s">Money</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="monthly"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 20h16"/><rect x="5.5" y="11" width="3" height="6"/><rect x="10.5" y="7" width="3" height="10"/><rect x="15.5" y="4" width="3" height="13"/></svg><span class="lbl">Monthly revenue</span><span class="lbl-s">Revenue</span></button>
   </nav>
   <div class="side-foot">
     <button class="side-link" id="btnSettings" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 5h16v11H9l-5 4Z"/><path d="M8 9h8M8 12h5"/></svg>Message templates</button>
     <button class="side-link" id="btnTheme" type="button"></button>
-    <span class="hint" style="padding:6px 10px">Version 3 · 11 Oct 2026</span>
+    <span class="hint" style="padding:6px 10px">Version 5 · 11 Oct 2026</span>
     <button class="side-link" id="btnSignOut" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M15 4h3.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H15"/><path d="M10 8l-4 4 4 4M6 12h10"/></svg>Sign out</button>
   </div>
 </aside>
@@ -330,7 +367,7 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
 
   <div id="paneAccounts" hidden>
     <p class="hint" style="margin:0 0 12px">Passwords sync to your devices and only your sign-in can read them. Anyone holding your unlocked phone or laptop can see them.</p>
-    <div class="list" id="accList"></div>
+    <div id="accList" class="acc-groups"></div>
   </div>
 
   <div id="paneTx" hidden>
@@ -1032,13 +1069,13 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
 
   function renderAccounts(){
     if(!accounts.length){ $("#accList").innerHTML='<div class="empty" style="padding:20px">No stock accounts yet. Add one to track its slots and when you need to pay the platform.</div>'; return; }
-    const rows=[...accounts].sort((a,b)=>(a.service||"").localeCompare(b.service||"")||(a.expiry||"9").localeCompare(b.expiry||"9"));
-    $("#accList").innerHTML='<div class="row head acc-row"><div>Email</div><div>Password</div><div>Slots used</div><div>Renews</div><div></div></div>'+
-      rows.map(a=>{
+    const order=s=>{ const i=SERVICES.indexOf(s); return i<0?99:i; };
+    const groups=[...new Set(accounts.map(a=>a.service||"Other"))].sort((x,y)=>order(x)-order(y)||x.localeCompare(y));
+    const accRow=a=>{
         const used=customers.filter(c=>c.accountId===a.id && ["active","soon"].includes(status(c))).length;
         const total=Number(a.slots)||0, d=daysLeft(a.expiry);
         const members=customers.filter(c=>c.accountId===a.id).sort((x,y)=>(x.expiry||"").localeCompare(y.expiry||""));
-        const extra=[a.service, money(a.cost), a.notes].filter(Boolean).join(" · ");
+        const extra=[money(a.cost), a.notes].filter(Boolean).join(" · ");
         return '<div class="row acc-row">'+
           '<div style="min-width:0"><div class="copyline"><span><b>'+esc(a.login)+'</b></span>'+copyBtn(a.login,"email")+'</div><div class="muted">'+esc(extra)+'</div></div>'+
           '<div style="min-width:0">'+(a.password?'<div class="copyline"><span>'+esc(a.password)+'</span>'+copyBtn(a.password,"password")+'</div>':'<span class="muted">No password</span>')+
@@ -1054,7 +1091,15 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
           '</div>'+
           '<div class="members">'+(members.length?members.map(c=>'<button type="button" class="member '+status(c)+'" data-edit="'+c.id+'" title="Edit '+esc(c.name)+'">'+esc(c.name)+(c.pin?' · '+esc(c.pin):'')+' · '+fmt(c.expiry)+'</button>').join(""):'<span class="muted">No customers on this account yet</span>')+'</div>'+
           '</div>';
-      }).join("");
+      };
+    $("#accList").innerHTML=groups.map(g=>{
+      const list=accounts.filter(a=>(a.service||"Other")===g).sort((a,b)=>(a.expiry||"9").localeCompare(b.expiry||"9"));
+      const total=list.reduce((s,a)=>s+(Number(a.slots)||0),0);
+      const used=list.reduce((s,a)=>s+customers.filter(c=>c.accountId===a.id && ["active","soon"].includes(status(c))).length,0);
+      const free=Math.max(0,total-used);
+      return '<section class="acc-sec"><div class="acc-sec-head"><h2>'+esc(g)+'</h2><span class="muted">'+list.length+(list.length===1?' account':' accounts')+' · '+used+' / '+total+' slots used · <span class="free'+(free?'':' none')+'">'+(free?free+' free':'Full')+'</span></span></div>'+
+        '<div class="list"><div class="row head acc-row"><div>Email</div><div>Password</div><div>Slots used</div><div>Renews</div><div></div></div>'+list.map(accRow).join("")+'</div></section>';
+    }).join("");
   }
 
   // ---------- transactions report ----------
@@ -1623,7 +1668,7 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
       $("#paneMonthly").hidden=t.dataset.tab!=="monthly";
       $("#paneDebts").hidden=t.dataset.tab!=="debts";
       $("#pageTitle").textContent=(t.querySelector("span")||t).textContent.trim();
-      $("#board").hidden=!["customers","accounts"].includes(t.dataset.tab);
+      $("#board").hidden=!(t.dataset.tab==="customers"||(t.dataset.tab==="accounts"&&innerWidth>760));
       return;
     }
     if(t.dataset.pay){ openPay(customers.find(x=>x.id===t.dataset.pay)); return; }
