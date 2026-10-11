@@ -149,6 +149,12 @@ h1{font:500 1.6rem/1.2 var(--display);margin:0}
 .copy:hover{color:var(--brand);background:var(--brand-tint)}
 .copy svg{width:16px;height:16px}
 .copy.done{color:var(--ok)}
+.pw-list{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.pw-item{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px;border:1px solid var(--line);border-radius:8px}
+.pw-item.sent{opacity:.6}
+.pw-item .muted{font-size:.82rem}
+.pw-row{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
+.pw-row label{flex:1;min-width:0}
 .members{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px;padding-top:2px}
 .member{font-size:.82rem;background:var(--brand-tint);color:var(--ink);border:1px solid transparent;border-radius:6px;padding:3px 9px;cursor:pointer}
 .member:hover{border-color:var(--brand)}
@@ -186,7 +192,6 @@ h1{font:500 1.6rem/1.2 var(--display);margin:0}
 .signin-err{color:var(--due);font-size:.9rem;text-align:center;min-height:1.2em;margin:0}
 .signin-row{display:flex;gap:8px}
 .signin-row .btn{flex:1}
-.btn:disabled{opacity:.45;cursor:not-allowed;filter:none}
 
 /* Dialogs */
 dialog{border:none;border-radius:10px;padding:0;background:var(--surface);color:var(--ink);width:min(560px,94vw);max-height:90vh}
@@ -480,6 +485,26 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
   </div>
 </form></dialog>
 
+<dialog id="dlgPass"><form class="dlg" method="dialog" id="formPass">
+  <h3 id="passTitle">New password</h3>
+  <div id="passStep1">
+    <p class="hint" style="margin:0 0 12px">First change the password on the streaming site yourself. Then type the same new password here, and the tracker prepares a WhatsApp message for every customer on this account.</p>
+    <div class="pw-row">
+      <label>New password<input name="newpass" id="newPass" autocomplete="off"></label>
+      <button class="btn small" type="button" id="btnSuggestPass">Suggest one</button>
+    </div>
+    <p class="hint" id="passErr" style="color:var(--due,#b3261e)" hidden>Type the new password first (at least 6 characters).</p>
+  </div>
+  <div id="passStep2" hidden>
+    <p class="hint" style="margin:0 0 8px" id="passDone"></p>
+    <div class="pw-list" id="passList"></div>
+  </div>
+  <div class="actions">
+    <button class="btn ghost" value="cancel" formnovalidate type="submit" id="passClose">Cancel</button>
+    <button class="btn primary" type="button" id="passSave">Save and prepare messages</button>
+  </div>
+</form></dialog>
+
 <dialog id="dlgHist"><form class="dlg" method="dialog">
   <h3 id="histTitle">History</h3>
   <div class="totals" id="histTotals"></div>
@@ -514,7 +539,7 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
 </form></dialog>
 
 <datalist id="serviceList">
-  <option value="Netflix"><option value="Shahid VIP"><option value="Anghami Plus"><option value="OSN+">
+  <option value="Netflix"><option value="Shahid VIP"><option value="Prime Video"><option value="Anghami Plus"><option value="OSN+">
   <option value="StarzPlay"><option value="YouTube Premium"><option value="Spotify"><option value="TOD">
 </datalist>
 
@@ -746,19 +771,14 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
       "auth/email-already-in-use":"This email already has an account. Tap Sign in.","auth/weak-password":"Use a password of at least 6 characters.",
       "auth/invalid-email":"That email doesn't look right.","auth/network-request-failed":"No internet connection. Try again when you're online.",
       "auth/unauthorized-domain":"This website isn't allowed in Firebase yet. Add it under Authentication, Settings, Authorized domains.",
-      "auth/operation-not-allowed":"Google sign-in is turned off in Firebase. Turn it on in Authentication, Sign-in method, Google.",
-      "auth/configuration-not-found":"Sign-in isn't set up in Firebase yet. Open Authentication and click Get started, then turn on Google."};
+      "auth/popup-closed-by-user":"","auth/cancelled-popup-request":""};
     const t=e&&e.code in m?m[e.code]:"Sign-in didn't work ("+((e&&e.code)||"unknown error")+").";
     $("#signinErr").textContent=t;
   }
   function startAuth(){
-    let why="";
-    if(location.protocol==="file:") why="This file is open from your computer. Open your GitHub link (https://…github.io/…) instead.";
-    else if(!window.FIREBASE_CONFIG) why="firebase-config.js wasn't found next to index.html. Upload it to the same place in your GitHub repository.";
-    else if(!window.FIREBASE_CONFIG.apiKey||/PASTE/.test(window.FIREBASE_CONFIG.apiKey)) why="firebase-config.js is the old empty version. Upload the new one that has your settings in it.";
-    else if(!window.firebase) why="Firebase couldn't load. Check your internet connection, turn off any ad blocker for this site, and reload.";
-    if(why){
-      $("#signin").hidden=false; $("#signinErr").textContent=why;
+    if(!window.firebase||!window.FIREBASE_CONFIG||!window.FIREBASE_CONFIG.apiKey||/PASTE/.test(window.FIREBASE_CONFIG.apiKey)){
+      $("#signin").hidden=false;
+      $("#signinErr").textContent="Firebase isn't set up yet: paste your settings into firebase-config.js.";
       $("#btnGoogle").disabled=true; return;
     }
     firebase.initializeApp(window.FIREBASE_CONFIG);
@@ -779,11 +799,10 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
       }
     });
     $("#btnGoogle").addEventListener("click",()=>{
-      $("#signinErr").textContent="Opening Google sign-in…";
+      $("#signinErr").textContent="";
       const provider=new firebase.auth.GoogleAuthProvider();
       AUTH.signInWithPopup(provider).catch(e=>{
         if(["auth/popup-blocked","auth/operation-not-supported-in-this-environment","auth/web-storage-unsupported"].includes(e.code)) AUTH.signInWithRedirect(provider);
-        else if(e.code==="auth/popup-closed-by-user"||e.code==="auth/cancelled-popup-request") $("#signinErr").textContent="The Google window was closed before signing in. Try again.";
         else signinError(e);
       });
     });
@@ -893,7 +912,7 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
 
   function renderServices(){
     const sel=$("#fService"), cur=sel.value;
-    const set=[...new Set(customers.map(c=>c.service).filter(Boolean))].sort();
+    const set=[...new Set(["Netflix","Shahid VIP","Prime Video"].concat(customers.map(c=>c.service).filter(Boolean)))].sort();
     sel.innerHTML='<option value="">All services</option>'+set.map(s=>'<option'+(s===cur?' selected':'')+'>'+esc(s)+'</option>').join("");
   }
 
@@ -967,12 +986,13 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
         return '<div class="row acc-row">'+
           '<div style="min-width:0"><div class="copyline"><span><b>'+esc(a.login)+'</b></span>'+copyBtn(a.login,"email")+'</div><div class="muted">'+esc(extra)+'</div></div>'+
           '<div style="min-width:0">'+(a.password?'<div class="copyline"><span>'+esc(a.password)+'</span>'+copyBtn(a.password,"password")+'</div>':'<span class="muted">No password</span>')+
-            '<div class="muted">'+(a.tempLink?"Code link saved":"No code link")+'</div></div>'+
+            '<div class="muted">'+(a.passChanged?"Changed "+fmt(a.passChanged)+". ":"")+(a.tempLink?"Code link saved":"No code link")+'</div></div>'+
           '<div class="slots'+(used>=total?' is-full':'')+'">'+used+' / '+total+'<div class="muted">'+(total-used>0?(total-used)+" free":"Full")+'</div></div>'+
           '<div>'+fmt(a.expiry)+'<div class="muted">'+(!a.expiry?"Date not set":d<0?Math.abs(d)+(d===-1?" day ago":" days ago"):d===0?"today":"in "+d+(d===1?" day":" days"))+'</div></div>'+
           '<div class="actions cell-actions">'+
             (a.expiry?'<a class="btn small" href="'+calLink("Pay "+(a.service||"")+" account ("+(a.login||"")+")",a.expiry)+'" target="_blank" rel="noopener">Calendar alert</a>':'')+
             '<button class="btn small" data-accrenew="'+a.id+'" type="button">Renew</button>'+
+            '<button class="btn small" data-accpass="'+a.id+'" type="button">New password</button>'+
             '<button class="btn small ghost" data-accedit="'+a.id+'" type="button">Edit</button>'+
             '<button class="btn small ghost danger" data-accdel="'+a.id+'" type="button">Delete</button>'+
           '</div>'+
@@ -1177,7 +1197,7 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
   });
   $("#dlgImport").addEventListener("close",()=>{
     if($("#dlgImport").returnValue!=="import"||!importPlan) { importPlan=null; return; }
-    importPlan.newAcc.forEach(a=>accounts.push(Object.assign({id:a.id},a.data,{slots:a.data.slots||(/shahid/i.test(a.data.service)?4:5)})));
+    importPlan.newAcc.forEach(a=>accounts.push(Object.assign({id:a.id},a.data,{slots:a.data.slots||(/shahid/i.test(a.data.service)?4:/prime/i.test(a.data.service)?6:5)})));
     importPlan.updAcc.forEach(u=>{ const i=accounts.findIndex(a=>a.id===u.id); if(i>=0){ const filled={}; Object.keys(u.data).forEach(k=>{ if(u.data[k]!==""&&u.data[k]!=null) filled[k]=u.data[k]; }); accounts[i]=Object.assign({},accounts[i],filled); } });
     importPlan.newCust.forEach(c=>{
       customers.push(Object.assign({id:c.id},c.data));
@@ -1283,8 +1303,11 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
   }
   fa.service.addEventListener("change",()=>{
     const v=fa.service.value.trim().toLowerCase();
-    if(v.startsWith("shahid") && fa.slots.value==="5") fa.slots.value="4";
-    else if(v.startsWith("netflix") && fa.slots.value==="4") fa.slots.value="5";
+    const s=fa.slots.value;
+    if(!["4","5","6"].includes(s)) return;
+    if(v.startsWith("shahid")) fa.slots.value="4";
+    else if(v.startsWith("netflix")) fa.slots.value="5";
+    else if(v.startsWith("prime")||v.startsWith("amazon")) fa.slots.value="6";
   });
   $("#dlgAcc").addEventListener("close",async()=>{
     if($("#dlgAcc").returnValue!=="save") return;
@@ -1295,6 +1318,45 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
     });
     await put("accounts",editingAcc||newId("a_"),data);
   });
+
+  // ---------- new password: save it, then send each customer the new login ----------
+  let passAcc=null;
+  function openPass(a){
+    if(!a) return;
+    passAcc=a.id;
+    $("#passTitle").textContent="New password for "+(a.login||a.service||"account");
+    $("#newPass").value=""; $("#passErr").hidden=true;
+    $("#passStep1").hidden=false; $("#passStep2").hidden=true;
+    $("#passSave").hidden=false; $("#passClose").textContent="Cancel";
+    $("#dlgPass").showModal();
+    $("#newPass").focus();
+  }
+  $("#btnSuggestPass").addEventListener("click",()=>{
+    const words=["Cedar","Byblos","Harissa","Faraya","Batroun","Zahle","Anfeh","Jbeil"];
+    const p=words[Math.floor(Math.random()*words.length)]+String(100+Math.floor(Math.random()*900))+"tv";
+    $("#newPass").value=p;
+  });
+  $("#passSave").addEventListener("click",async()=>{
+    const a=accounts.find(x=>x.id===passAcc); if(!a) return;
+    const v=$("#newPass").value.trim();
+    if(v.length<6){ $("#passErr").hidden=false; return; }
+    await put("accounts",a.id,Object.assign(strip(a),{password:v,passChanged:todayStr()}));
+    const members=customers.filter(c=>c.accountId===a.id).sort((x,y)=>(x.name||"").localeCompare(y.name||""));
+    const active=members.filter(c=>["active","soon"].includes(status(c)));
+    const skipped=members.length-active.length;
+    $("#passDone").textContent="Password saved. Send each customer below their new login"+(skipped?" ("+skipped+" expired or not renewing, so they're left out)":"")+".";
+    $("#passList").innerHTML=active.length?active.map(c=>
+      '<div class="pw-item"><div><b>'+esc(c.name)+'</b><div class="muted">'+esc([c.profile,c.pin?"PIN "+c.pin:"",c.phone||"No number yet"].filter(Boolean).join(" · "))+'</div></div>'+
+      (hasPhone(c)?'<a class="btn small wa" href="'+loginLink(c)+'" target="_blank" rel="noopener" data-pwsent>Send new login</a>':'<button class="btn small ghost" type="button" data-edit="'+c.id+'">Add number</button>')+
+      '</div>').join(""):'<div class="empty" style="padding:12px">No active customers on this account, so there is nobody to message.</div>';
+    $("#passStep1").hidden=true; $("#passStep2").hidden=false;
+    $("#passSave").hidden=true; $("#passClose").textContent="Done";
+  });
+  $("#passList").addEventListener("click",e=>{
+    const b=e.target.closest("[data-pwsent]"); if(!b) return;
+    b.textContent="Sent"; b.closest(".pw-item").classList.add("sent");
+  });
+  $("#passList").addEventListener("click",e=>{ if(e.target.closest("[data-edit]")) $("#dlgPass").close(); });
 
   // ---------- renew ----------
   const fr=$("#formRenew");
@@ -1414,7 +1476,7 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
       catch(err){ const ta=document.createElement("textarea"); ta.value=cp.dataset.copy; document.body.appendChild(ta); ta.select(); try{ document.execCommand("copy"); done(); }catch(x){} ta.remove(); }
       return;
     }
-    const t=e.target.closest("[data-pay],[data-remind],[data-renew],[data-stop],[data-edit],[data-del],[data-accrenew],[data-accedit],[data-accdel],[data-history],[data-txdel],[data-range],.tab");
+    const t=e.target.closest("[data-pay],[data-remind],[data-renew],[data-stop],[data-edit],[data-del],[data-accrenew],[data-accpass],[data-accedit],[data-accdel],[data-history],[data-txdel],[data-range],.tab");
     if(!t) return;
     if(t.classList.contains("tab")){
       document.querySelectorAll(".tab").forEach(b=>b.setAttribute("aria-selected",b===t?"true":"false"));
@@ -1459,6 +1521,7 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
       return;
     }
     if(t.dataset.accrenew){ openAccPay(accounts.find(x=>x.id===t.dataset.accrenew)); return; }
+    if(t.dataset.accpass){ openPass(accounts.find(x=>x.id===t.dataset.accpass)); return; }
     if(t.dataset.accedit){ openAcc(accounts.find(x=>x.id===t.dataset.accedit)); return; }
     if(t.dataset.accdel){
       const a=accounts.find(x=>x.id===t.dataset.accdel);
@@ -1524,7 +1587,7 @@ label input,label select,label textarea{background:var(--bg);border:1px solid va
   // ---------- boot ----------
   render();
   setSync();
-  try{ startAuth(); }catch(e){ $("#signin").hidden=false; $("#signinErr").textContent="Sign-in couldn't start: "+(e&&e.message||e); }
+  startAuth();
   if("serviceWorker" in navigator && location.protocol==="https:") navigator.serviceWorker.register("sw.js").catch(()=>{});
 })();
 </script>
